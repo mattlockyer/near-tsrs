@@ -1,22 +1,36 @@
-use std::collections::HashMap;
+mod utils;
+
+use crate::utils::*;
+
 use near_sdk::{
-	env, near_bindgen, serde_json::json, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise, PromiseOrValue,
+	env, near_bindgen, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise,
 	borsh::{self, BorshDeserialize, BorshSerialize},
-	collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet},
-	serde::{Deserialize, Serialize},
-	json_types::{U64, U128},
+	collections::{LookupMap, UnorderedMap, UnorderedSet},
+	json_types::{U128},
 };
 
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
-	Items
+	EventsByName,
+    NetworksByOwner { event_name: String },
+    Connections { network_owner_id: AccountId },
+}
+
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+pub struct Network {
+	connections: UnorderedSet<AccountId>,
+}
+
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+pub struct Event {
+	networks_by_owner: LookupMap<AccountId, Network>,
 }
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
 	owner_id: AccountId,
-	items: LookupMap<AccountId, String>,
+	events_by_name: UnorderedMap<String, Event>,
 }
 
 #[near_bindgen]
@@ -25,26 +39,48 @@ impl Contract {
     pub fn new(owner_id: AccountId) -> Self {
         Self {
 			owner_id,
-			items: LookupMap::new(StorageKey::Items),
+			events_by_name: UnorderedMap::new(StorageKey::EventsByName),
         }
     }
-}
 	
-/// from https://github.com/near/near-sdk-rs/blob/e4abb739ff953b06d718037aa1b8ab768db17348/near-contract-standards/src/non_fungible_token/utils.rs#L29
+    #[payable]
+    pub fn create_event(&mut self, event_name: String) {
+		let initial_storage_usage = env::storage_usage();
 
-pub fn refund_deposit(storage_used: u64) {
-    let required_cost = env::storage_byte_cost() * Balance::from(storage_used);
-    let attached_deposit = env::attached_deposit();
+		assert_eq!(env::predecessor_account_id(), self.owner_id, "owner only");
+		
+        assert!(self.events_by_name.insert(&event_name.clone(), &Event{
+			networks_by_owner: LookupMap::new(StorageKey::NetworksByOwner { event_name }),
+		}).is_none(), "event exists");
 
-    assert!(
-        required_cost <= attached_deposit,
-        "Must attach {} yoctoNEAR to cover storage",
-        required_cost,
-    );
+        refund_deposit(env::storage_usage() - initial_storage_usage);
+    }
+	
+    #[payable]
+    pub fn create_connection(&mut self, event_name: String, new_connection_id: AccountId) {
+		let initial_storage_usage = env::storage_usage();
 
-    let refund = attached_deposit - required_cost;
-	// log!("refund_deposit amount {}", refund);
-    if refund > 1 {
-        Promise::new(env::predecessor_account_id()).transfer(refund);
+		let network_owner_id = env::predecessor_account_id();
+		let mut event = self.events_by_name.get(&event_name).expect("no event");
+		let mut network = event.networks_by_owner.get(&network_owner_id);
+		if network.is_none() {
+			network = Some(Network{
+				connections: UnorderedSet::new(StorageKey::Connections { network_owner_id: network_owner_id.clone() })
+			})
+		}
+		let mut unwrapped_network = network.unwrap();
+
+		unwrapped_network.connections.insert(&new_connection_id);
+		event.networks_by_owner.insert(&network_owner_id, &unwrapped_network);
+
+        refund_deposit(env::storage_usage() - initial_storage_usage);
+    }
+
+	/// views
+	
+    pub fn get_connections(&self, event_name: String, network_owner_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<AccountId> {
+		let event = self.events_by_name.get(&event_name).expect("no event");
+		let network = event.networks_by_owner.get(&network_owner_id).expect("no network");
+		unordered_set_pagination(&network.connections, from_index, limit)
     }
 }

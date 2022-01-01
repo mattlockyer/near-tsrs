@@ -18,23 +18,23 @@ const init = async (owner_id = contractId) => {
 				owner_id
 			},
 			gas
-		})
+		});
 	} catch (e) {
-		console.log('contract already initialized')
+		console.log('contract already initialized');
 		if (!/initialized/.test(e.toString())) {
 			throw e;
 		}
 	}
-	return contractAccount
+	return contractAccount;
 };
 
 const getAccount = async (accountId, fundingAmount = NEW_ACCOUNT_AMOUNT, secret) => {
 	const account = new nearAPI.Account(connection, accountId);
 	try {
-		const secret = await fs.readFileSync(`./neardev/${accountId}`, 'utf-8')
-		const newKeyPair = KeyPair.fromString(secret)
+		const secret = await fs.readFileSync(`./neardev/${accountId}`, 'utf-8');
+		const newKeyPair = KeyPair.fromString(secret);
 		keyStore.setKey(networkId, accountId, newKeyPair);
-		await account.state()
+		await account.state();
 		return account;
 	} catch(e) {
 		if (!/no such file|does not exist/.test(e.toString())) {
@@ -46,7 +46,7 @@ const getAccount = async (accountId, fundingAmount = NEW_ACCOUNT_AMOUNT, secret)
 
 const createAccount = async (accountId, fundingAmount = NEW_ACCOUNT_AMOUNT, secret) => {
 	const newKeyPair = secret ? KeyPair.fromString(secret) : KeyPair.fromRandom('ed25519');
-	fs.writeFileSync(`./neardev/${accountId}` , newKeyPair.toString(), 'utf-8')
+	fs.writeFileSync(`./neardev/${accountId}` , newKeyPair.toString(), 'utf-8');
 	await contractAccount.createAccount(accountId, newKeyPair.publicKey, fundingAmount);
 	keyStore.setKey(networkId, accountId, newKeyPair);
 	return new nearAPI.Account(connection, accountId);
@@ -62,4 +62,4 @@ module.exports = {
 	getAccount,
 	createAccount,
 	getAccountBalance,
-}
+};
