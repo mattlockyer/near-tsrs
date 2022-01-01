@@ -3,17 +3,20 @@ mod utils;
 use crate::utils::*;
 
 use near_sdk::{
+	// log,
 	env, near_bindgen, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise,
 	borsh::{self, BorshDeserialize, BorshSerialize},
 	collections::{LookupMap, UnorderedMap, UnorderedSet},
 	json_types::{U128},
 };
 
+pub const STORAGE_KEY_DELIMETER: char = '|';
+
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
 	EventsByName,
     NetworksByOwner { event_name: String },
-    Connections { network_owner_id: AccountId },
+    Connections { event_name_and_owner_id: String },
 }
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -65,7 +68,7 @@ impl Contract {
 		let mut network = event.networks_by_owner.get(&network_owner_id);
 		if network.is_none() {
 			network = Some(Network{
-				connections: UnorderedSet::new(StorageKey::Connections { network_owner_id: network_owner_id.clone() })
+				connections: UnorderedSet::new(StorageKey::Connections { event_name_and_owner_id: format!("{}{}{}", event_name, STORAGE_KEY_DELIMETER, network_owner_id.clone()) })
 			})
 		}
 		let mut unwrapped_network = network.unwrap();

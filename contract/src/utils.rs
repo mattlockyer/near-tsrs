@@ -5,12 +5,16 @@ pub(crate) fn unordered_map_key_pagination<K, V>(
     from_index: Option<U128>,
     limit: Option<u64>,
 ) -> Vec<K> where K: BorshSerialize + BorshDeserialize, V: BorshSerialize + BorshDeserialize {
+	let len = map.keys_as_vector().len();
+	if len == 0 {
+		return vec![];
+	}
 	let limit = limit.map(|v| v as usize).unwrap_or(usize::MAX);
-	assert_ne!(limit, 0, "Cannot provide limit of 0.");
+	assert_ne!(limit, 0, "limit 0");
 	let start_index: u128 = from_index.map(From::from).unwrap_or_default();
 	assert!(
-		map.len() as u128 > start_index,
-		"Out of bounds, please use a smaller from_index."
+		len as u128 > start_index,
+		"start_index gt len"
 	);
 	map
 		.keys()
@@ -25,12 +29,16 @@ pub(crate) fn unordered_set_pagination<V>(
     from_index: Option<U128>,
     limit: Option<u64>,
 ) -> Vec<V> where V: BorshSerialize + BorshDeserialize {
+	let len = set.len();
+	if len == 0 {
+		return vec![];
+	}
 	let limit = limit.map(|v| v as usize).unwrap_or(usize::MAX);
-	assert_ne!(limit, 0, "Cannot provide limit of 0.");
+	assert_ne!(limit, 0, "limit 0");
 	let start_index: u128 = from_index.map(From::from).unwrap_or_default();
 	assert!(
-		set.len() as u128 > start_index,
-		"Out of bounds, please use a smaller from_index."
+		len as u128 > start_index,
+		"start_index gt len"
 	);
 	set
 		.iter()

@@ -1,6 +1,12 @@
 const fs = require('fs');
+const BN = require('bn.js');
 const nearAPI = require('near-api-js');
-const { KeyPair } = nearAPI;
+const { 
+	KeyPair,
+	utils: { format: {
+		formatNearAmount
+	} }
+} = nearAPI;
 const { connection, keyStore, contractAccount } = require('./near-utils');
 const getConfig = require("./config");
 const {
@@ -54,12 +60,13 @@ const createAccount = async (accountId, fundingAmount = NEW_ACCOUNT_AMOUNT, secr
 
 /// debugging
 
-const getAccountBalance = async (accountId) => (new nearAPI.Account(connection, accountId)).getAccountBalance();
-
+const getAccountBalance = (accountId) => (new nearAPI.Account(connection, accountId)).getAccountBalance();
+const stateCost = (balanceBefore, balanceAfter) => formatNearAmount(new BN(balanceAfter.stateStaked).sub(new BN(balanceBefore.stateStaked)).toString(), 8)
 
 module.exports = {
 	init,
 	getAccount,
 	createAccount,
 	getAccountBalance,
+	stateCost,
 };

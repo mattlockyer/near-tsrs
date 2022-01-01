@@ -1,5 +1,5 @@
 const test = require('ava');
-const { getAccount, init } = require('./test-utils');
+const { getAccount, init, getAccountBalance, stateCost } = require('./test-utils');
 const getConfig = require("./config");
 const {
 	contractId,
@@ -29,6 +29,8 @@ test('users initialized', async (t) => {
 test('create an event', async (t) => {
 	event_name = 'event-' + Date.now();
 
+	const balanceBefore = await getAccountBalance(contractId)
+
 	const res = await contractAccount.functionCall({
 		contractId,
 		methodName: 'create_event',
@@ -38,6 +40,9 @@ test('create an event', async (t) => {
 		gas,
 		attachedDeposit,
 	});
+
+	const balanceAfter = await getAccountBalance(contractId)
+	console.log(stateCost(balanceBefore, balanceAfter))
 
 	t.is(res?.status?.SuccessValue, '');
 });
@@ -49,7 +54,9 @@ test('get events', async (t) => {
 		{}
 	);
 
-	t.is(res.length, 1);
+	console.log(res)
+
+	t.true(res.length >= 1);
 });
 
 test('create a connection', async (t) => {
@@ -77,5 +84,5 @@ test('get connections', async (t) => {
 		}
 	);
 
-	t.is(res.length, 1);
+	t.true(res.length >= 1);
 });
