@@ -78,6 +78,10 @@ impl Contract {
 
 	/// views
 	
+    pub fn get_events(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+		unordered_map_key_pagination(&self.events_by_name, from_index, limit)
+    }
+	
     pub fn get_connections(&self, event_name: String, network_owner_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<AccountId> {
 		let event = self.events_by_name.get(&event_name).expect("no event");
 		let network = event.networks_by_owner.get(&network_owner_id).expect("no network");

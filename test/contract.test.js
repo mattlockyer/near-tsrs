@@ -42,6 +42,16 @@ test('create an event', async (t) => {
 	t.is(res?.status?.SuccessValue, '');
 });
 
+test('get events', async (t) => {
+	const res = await alice.viewFunction(
+		contractId,
+		'get_events',
+		{}
+	);
+
+	t.is(res.length, 1);
+});
+
 test('create a connection', async (t) => {
 	const res = await alice.functionCall({
 		contractId,
