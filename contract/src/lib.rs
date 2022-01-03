@@ -34,6 +34,7 @@ pub struct Event {
 pub struct Contract {
 	owner_id: AccountId,
 	events_by_name: UnorderedMap<String, Event>,
+	test: LookupMap<String, String>,
 }
 
 #[near_bindgen]
@@ -43,6 +44,7 @@ impl Contract {
         Self {
 			owner_id,
 			events_by_name: UnorderedMap::new(StorageKey::EventsByName),
+			test: LookupMap::new("a".as_bytes()),
         }
     }
 	
@@ -75,6 +77,24 @@ impl Contract {
 
 		unwrapped_network.connections.insert(&new_connection_id);
 		event.networks_by_owner.insert(&network_owner_id, &unwrapped_network);
+
+        refund_deposit(env::storage_usage() - initial_storage_usage);
+    }
+
+	#[payable]
+    pub fn create_test(&mut self, key: String, val: String) {
+		let initial_storage_usage = env::storage_usage();
+
+		self.test.insert(&key, &val);
+
+        refund_deposit(env::storage_usage() - initial_storage_usage);
+    }
+
+	#[payable]
+    pub fn create_test_raw(&mut self, key: String, val: String) {
+		let initial_storage_usage = env::storage_usage();
+
+		self.test.insert_raw(key.as_bytes(), val.as_bytes());
 
         refund_deposit(env::storage_usage() - initial_storage_usage);
     }

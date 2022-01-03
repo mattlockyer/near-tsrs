@@ -1,5 +1,8 @@
 const test = require('ava');
-const { getAccount, init, getAccountBalance, stateCost } = require('./test-utils');
+const {
+	getAccount, init,
+	recordStart, recordStop,
+} = require('./test-utils');
 const getConfig = require("./config");
 const {
 	contractId,
@@ -29,9 +32,6 @@ test('users initialized', async (t) => {
 
 test('create an event', async (t) => {
 	event_name = 'event-' + Date.now();
-	console.log(event_name, event_name.length)
-
-	const balanceBefore = await getAccountBalance(contractId)
 
 	const res = await contractAccount.functionCall({
 		contractId,
@@ -43,9 +43,6 @@ test('create an event', async (t) => {
 		attachedDeposit,
 	});
 
-	const balanceAfter = await getAccountBalance(contractId)
-	console.log('event storage cost:', stateCost(balanceBefore, balanceAfter))
-
 	t.is(res?.status?.SuccessValue, '');
 });
 
@@ -56,15 +53,12 @@ test('get events', async (t) => {
 		{}
 	);
 
-	console.log(res)
+	// console.log(res)
 
 	t.true(res.length >= 1);
 });
 
 test('create a connection', async (t) => {
-	console.log(bobId, bobId.length)
-
-	const balanceBefore = await getAccountBalance(contractId)
 
 	const res = await alice.functionCall({
 		contractId,
@@ -77,77 +71,125 @@ test('create a connection', async (t) => {
 		attachedDeposit,
 	});
 
-	const balanceAfter = await getAccountBalance(contractId)
-	console.log('connection storage cost:', stateCost(balanceBefore, balanceAfter))
-
 	t.is(res?.status?.SuccessValue, '');
 });
 
-test('create another connection', async (t) => {
-	const carolId = 'car.' + contractId
-	console.log(carolId, carolId.length)
+test('create test 1', async (t) => {
 
-	const balanceBefore = await getAccountBalance(contractId)
+	await recordStart(contractId)
 
 	const res = await alice.functionCall({
 		contractId,
-		methodName: 'create_connection',
+		methodName: 'create_test',
 		args: {
-			event_name,
-			new_connection_id: carolId,
+			key: 'tst1',
+			val: 'oawifjaowjiefoawijefoawijefoawif'
 		},
 		gas,
 		attachedDeposit,
 	});
 
-	const balanceAfter = await getAccountBalance(contractId)
-	console.log('another connection storage cost:', stateCost(balanceBefore, balanceAfter))
+	await recordStop(contractId)
 
 	t.is(res?.status?.SuccessValue, '');
 });
 
-test('create another connection 2', async (t) => {
-	let daveId = 'dav0000.' + contractId
-	console.log(daveId, daveId.length)
+test('create test 2', async (t) => {
 
-	const balanceBefore = await getAccountBalance(contractId)
+	await recordStart(contractId)
 
 	const res = await alice.functionCall({
 		contractId,
-		methodName: 'create_connection',
+		methodName: 'create_test',
 		args: {
-			event_name,
-			new_connection_id: daveId,
+			key: 'tst2',
+			val: 'oawifjaowjiefoawijefoawijefoawifoawifjaowjiefoawijefoawijefoawif'
 		},
 		gas,
 		attachedDeposit,
 	});
 
-	const balanceAfter = await getAccountBalance(contractId)
-	console.log('another connection 2 storage cost:', stateCost(balanceBefore, balanceAfter))
+	await recordStop(contractId)
 
 	t.is(res?.status?.SuccessValue, '');
 });
 
-test('create another connection 3', async (t) => {
-	let daveId = 'dav00000000.' + contractId
-	console.log(daveId, daveId.length)
+test('create test 3', async (t) => {
 
-	const balanceBefore = await getAccountBalance(contractId)
+	await recordStart(contractId)
 
 	const res = await alice.functionCall({
 		contractId,
-		methodName: 'create_connection',
+		methodName: 'create_test',
 		args: {
-			event_name,
-			new_connection_id: daveId,
+			key: 'tst3',
+			val: 'oawifjaowjiefoawijefoawijefoawifoawifjaowjiefoawijefoawijefoawifoawifjaowjiefoawijefoawijefoawif'
 		},
 		gas,
 		attachedDeposit,
 	});
 
-	const balanceAfter = await getAccountBalance(contractId)
-	console.log('another connection 3 storage cost:', stateCost(balanceBefore, balanceAfter))
+	await recordStop(contractId)
+
+	t.is(res?.status?.SuccessValue, '');
+});
+
+test('create test raw 1', async (t) => {
+
+	await recordStart(contractId)
+
+	const res = await alice.functionCall({
+		contractId,
+		methodName: 'create_test_raw',
+		args: {
+			key: 'raw1',
+			val: 'oawifjaowjiefoawijefoawijefoawif'
+		},
+		gas,
+		attachedDeposit,
+	});
+
+	await recordStop(contractId)
+
+	t.is(res?.status?.SuccessValue, '');
+});
+
+test('create test raw 2', async (t) => {
+
+	await recordStart(contractId)
+
+	const res = await alice.functionCall({
+		contractId,
+		methodName: 'create_test_raw',
+		args: {
+			key: 'raw2',
+			val: 'oawifjaowjiefoawijefoawijefoawifoawifjaowjiefoawijefoawijefoawif'
+		},
+		gas,
+		attachedDeposit,
+	});
+
+	await recordStop(contractId)
+
+	t.is(res?.status?.SuccessValue, '');
+});
+
+test('create test raw 3', async (t) => {
+
+	await recordStart(contractId)
+
+	const res = await alice.functionCall({
+		contractId,
+		methodName: 'create_test_raw',
+		args: {
+			key: 'raw3',
+			val: 'oawifjaowjiefoawijefoawijefoawifoawifjaowjiefoawijefoawijefoawifoawifjaowjiefoawijefoawijefoawif'
+		},
+		gas,
+		attachedDeposit,
+	});
+
+	await recordStop(contractId)
 
 	t.is(res?.status?.SuccessValue, '');
 });
@@ -162,7 +204,7 @@ test('get connections', async (t) => {
 		}
 	);
 
-	console.log(res)
+	// console.log(res)
 
 	t.true(res.length >= 1);
 });
