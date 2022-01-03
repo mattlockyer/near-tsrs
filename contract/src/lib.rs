@@ -21,7 +21,7 @@ enum StorageKey {
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Network {
-	connections: UnorderedSet<String>,
+	connections: UnorderedSet<AccountId>,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -73,7 +73,7 @@ impl Contract {
 		}
 		let mut unwrapped_network = network.unwrap();
 
-		unwrapped_network.connections.insert(&new_connection_id.to_string());
+		unwrapped_network.connections.insert(&new_connection_id);
 		event.networks_by_owner.insert(&network_owner_id, &unwrapped_network);
 
         refund_deposit(env::storage_usage() - initial_storage_usage);
@@ -85,7 +85,7 @@ impl Contract {
 		unordered_map_key_pagination(&self.events_by_name, from_index, limit)
     }
 	
-    pub fn get_connections(&self, event_name: String, network_owner_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
+    pub fn get_connections(&self, event_name: String, network_owner_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<AccountId> {
 		let event = self.events_by_name.get(&event_name).expect("no event");
 		let network = event.networks_by_owner.get(&network_owner_id).expect("no network");
 		unordered_set_pagination(&network.connections, from_index, limit)

@@ -112,7 +112,7 @@ test('get connections', async (t) => {
 		}
 	);
 
-	// console.log(res)
+	console.log(res)
 
 	t.true(res.length >= 1);
 });
