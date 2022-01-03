@@ -62,31 +62,31 @@ const createAccount = async (accountId, fundingAmount = NEW_ACCOUNT_AMOUNT, secr
 
 const getAccountBalance = (accountId) => (new nearAPI.Account(connection, accountId)).getAccountBalance();
 const getAccountState = (accountId) => (new nearAPI.Account(connection, accountId)).state();
-const stateCost = (balanceBefore, balanceAfter) => formatNearAmount(new BN(balanceAfter.stateStaked).sub(new BN(balanceBefore.stateStaked)).toString(), 8)
-const bytesUsed = (stateBefore, stateAfter) => parseInt(stateAfter.storage_usage, 10) - parseInt(stateBefore.storage_usage)
+const stateCost = (balanceBefore, balanceAfter) => formatNearAmount(new BN(balanceAfter.stateStaked).sub(new BN(balanceBefore.stateStaked)).toString(), 8);
+const bytesUsed = (stateBefore, stateAfter) => parseInt(stateAfter.storage_usage, 10) - parseInt(stateBefore.storage_usage);
 
 /// analyzing
 
-let data = {}
+let data = {};
 const recordStart = async (accountId) => {
 	data[accountId] = {
 		balance: await getAccountBalance(accountId),
 		state: await getAccountState(accountId),
-	}
-}
+	};
+};
 
 const recordStop = async (accountId) => {
-	const before = data[accountId]
+	const before = data[accountId];
 	const after = {
 		balance: await getAccountBalance(accountId),
 		state: await getAccountState(accountId),
-	}
+	};
 
-	console.log('\nAnalysis:\n')
-	console.log('State stake:', stateCost(before.balance, after.balance))
-	console.log('Bytes used:', bytesUsed(before.state, after.state))
-	console.log('\n')
-}
+	console.log('\nAnalysis:\n');
+	console.log('State stake:', stateCost(before.balance, after.balance));
+	console.log('Bytes used:', bytesUsed(before.state, after.state));
+	console.log('\n');
+};
 
 module.exports = {
 	init,

@@ -80,7 +80,7 @@ test('create a connection', async (t) => {
 
 test('create another connection', async (t) => {
 
-	const carolId = 'car.' + contractId
+	const carolId = 'car.' + contractId;
 
 	await recordStart(contractId);
 
@@ -110,7 +110,7 @@ test('get connections', async (t) => {
 		}
 	);
 
-	console.log(res)
+	console.log(res);
 
 	t.true(res.length >= 1);
 });
