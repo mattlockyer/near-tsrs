@@ -78,7 +78,6 @@ test('create a connection', async (t) => {
 	t.is(res?.status?.SuccessValue, '');
 });
 
-
 test('create another connection', async (t) => {
 
 	const carolId = 'car.' + contractId
@@ -100,7 +99,6 @@ test('create another connection', async (t) => {
 
 	t.is(res?.status?.SuccessValue, '');
 });
-
 
 test('get connections', async (t) => {
 	const res = await alice.viewFunction(
