@@ -3,7 +3,7 @@ const {
 	getAccount, init,
 	recordStart, recordStop,
 } = require('./test-utils');
-const getConfig = require("./config");
+const getConfig = require("../utils/config");
 const {
 	contractId,
 	gas,
