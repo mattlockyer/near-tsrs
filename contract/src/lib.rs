@@ -4,6 +4,7 @@ use crate::utils::*;
 
 use near_sdk::{
 	// log,
+	require,
 	env, near_bindgen, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise,
 	borsh::{self, BorshDeserialize, BorshSerialize},
 	collections::{LookupMap, UnorderedMap, UnorderedSet},
@@ -50,9 +51,9 @@ impl Contract {
     pub fn create_event(&mut self, event_name: String) {
 		let initial_storage_usage = env::storage_usage();
 
-		assert_eq!(env::predecessor_account_id(), self.owner_id, "owner only");
+		require!(env::predecessor_account_id() == self.owner_id, "owner only");
 		
-        assert!(self.events_by_name.insert(&event_name.clone(), &Event{
+        require!(self.events_by_name.insert(&event_name.clone(), &Event{
 			networks_by_owner: LookupMap::new(StorageKey::NetworksByOwner { event_name }),
 		}).is_none(), "event exists");
 
@@ -64,17 +65,13 @@ impl Contract {
 		let initial_storage_usage = env::storage_usage();
 
 		let network_owner_id = env::predecessor_account_id();
-		let mut event = self.events_by_name.get(&event_name).expect("no event");
-		let mut network = event.networks_by_owner.get(&network_owner_id);
-		if network.is_none() {
-			network = Some(Network{
-				connections: UnorderedSet::new(StorageKey::Connections { event_name_and_owner_id: format!("{}{}{}", event_name, STORAGE_KEY_DELIMETER, network_owner_id.clone()) })
-			})
-		}
-		let mut unwrapped_network = network.unwrap();
+		let mut event = self.events_by_name.get(&event_name).unwrap_or_else(|| env::panic_str("no event"));
+		let mut network = event.networks_by_owner.get(&network_owner_id).unwrap_or_else(|| Network{
+			connections: UnorderedSet::new(StorageKey::Connections { event_name_and_owner_id: format!("{}{}{}", event_name, STORAGE_KEY_DELIMETER, network_owner_id.clone()) })
+		});
 
-		unwrapped_network.connections.insert(&new_connection_id);
-		event.networks_by_owner.insert(&network_owner_id, &unwrapped_network);
+		network.connections.insert(&new_connection_id);
+		event.networks_by_owner.insert(&network_owner_id, &network);
 
         refund_deposit(env::storage_usage() - initial_storage_usage);
     }
@@ -86,8 +83,8 @@ impl Contract {
     }
 	
     pub fn get_connections(&self, event_name: String, network_owner_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<AccountId> {
-		let event = self.events_by_name.get(&event_name).expect("no event");
-		let network = event.networks_by_owner.get(&network_owner_id).expect("no network");
+		let event = self.events_by_name.get(&event_name).unwrap_or_else(|| env::panic_str("no event"));
+		let network = event.networks_by_owner.get(&network_owner_id).unwrap_or_else(|| env::panic_str("no network"));
 		unordered_set_pagination(&network.connections, from_index, limit)
     }
 }
