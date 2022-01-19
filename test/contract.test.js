@@ -3,7 +3,7 @@ const {
 	getAccount, init,
 	recordStart, recordStop,
 } = require('./test-utils');
-const getConfig = require("./config");
+const getConfig = require("../utils/config");
 const {
 	contractId,
 	gas,
@@ -78,10 +78,9 @@ test('create a connection', async (t) => {
 	t.is(res?.status?.SuccessValue, '');
 });
 
-
 test('create another connection', async (t) => {
 
-	const carolId = 'car.' + contractId
+	const carolId = 'car.' + contractId;
 
 	await recordStart(contractId);
 
@@ -101,7 +100,6 @@ test('create another connection', async (t) => {
 	t.is(res?.status?.SuccessValue, '');
 });
 
-
 test('get connections', async (t) => {
 	const res = await alice.viewFunction(
 		contractId,
@@ -112,7 +110,7 @@ test('get connections', async (t) => {
 		}
 	);
 
-	// console.log(res)
+	console.log(res);
 
 	t.true(res.length >= 1);
 });
