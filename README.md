@@ -2,6 +2,8 @@
 
 🚨🚨🚨 WARNING WIP 🚨🚨🚨
 
+It's not that bad...
+
 ## Instructions
 
 Install rust: https://www.rust-lang.org/tools/install
