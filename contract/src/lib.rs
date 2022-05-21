@@ -36,20 +36,25 @@ use args::*;
 
 pub type AccountId<'a> = &'a str;
 
+#[no_mangle]
+pub fn  init() {
+	unsafe { near_sys::input(TEMP_REGISTER) };
+	let data = register_read(TEMP_REGISTER);
+	let args = expect(alloc::str::from_utf8(&data).ok());
 
-	#[no_mangle]
-	pub fn  init() {
-        unsafe { near_sys::input(TEMP_REGISTER) };
-        let data = register_read(TEMP_REGISTER);
-        let args = expect(alloc::str::from_utf8(&data).ok());
+	let b = get_arg!(get_uint, args, "\"b\":");
+	let a = get_arg!(get_uint, args, "\"a\":");
+	let owner_id = get_arg!(get_string, args, "\"owner_id\":");
+	print(owner_id);
+	print_number(a + b);
+}
 
-		let age = get_arg!(get_uint, args, "\"age\":");
-		let owner_id = get_arg!(get_string, args, "\"owner_id\":");
-		print(owner_id, age)
-	}
+fn print(owner_id: AccountId) {
+	log(&format!("The arguments are {:?}",  owner_id));
+}
 
-	fn print(owner_id: AccountId, age: u128) {
-		log(&format!("The arguments are {:?} {:?}",  age, owner_id));
-	}
+fn print_number(v: u128) {
+	log(&format!("Number:  {:?}",  v));
+}
 
 

@@ -19,7 +19,8 @@ test('contract is deployed', async (t) => {
 			contractId,
 			methodName: 'init',
 			args: {
-				age: 42,
+				a: 21,
+				b: 21,
 				owner_id: "someone.near",
 			},
 			gas
