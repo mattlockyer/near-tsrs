@@ -1,4 +1,4 @@
-const contractName = 'dev-1653161475589-68299104726409';
+const contractName = 'dev-1653162099680-67096037114153';
 
 export default function getConfig(network = 'testnet') {
 	let config = {

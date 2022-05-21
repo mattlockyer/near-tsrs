@@ -5,14 +5,14 @@ export class Contract implements NearContract {
 
 	public init(owner_id: AccountId, a: u128, b: u128) {
 		this.print(owner_id);
-		this.print_number(a + b);
+		this.printNumber(a + b);
 	}
 
 	print(owner_id: AccountId) {
 		console.log("The arguments are", owner_id);
 	}
 
-	print_number(v: u128) {
+	printNumber(v: u128) {
 		console.log("Number: ", v);
 	}
 

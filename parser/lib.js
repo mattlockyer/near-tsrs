@@ -2,6 +2,8 @@ export const LIB_BASE = `
 #![cfg_attr(target_arch = "wasm32", no_std)]
 #![cfg_attr(target_arch = "wasm32", feature(alloc_error_handler))]
 
+#![allow(non_snake_case)]
+
 #[cfg(target_arch = "wasm32")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
