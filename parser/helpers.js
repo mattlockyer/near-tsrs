@@ -73,4 +73,13 @@ export const parseMethods = (data) => {
 	return data
 }
 
-export const parseMethodCalls = (data) => data.replace(/this\./gi, '')
+export const parseMethodCalls = (data) => data
+.replace(/this\./gi, '')
+
+export const parseSysCalls = (data) => data
+.replace(/storage_read/gi, '&storage_read')
+
+export const parseVariables = (data) => data
+.replace(/let/gi, 'let mut')
+.replace(/const/gi, 'let')
+.replace(/:\s*string/gi, '')

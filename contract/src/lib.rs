@@ -29,6 +29,7 @@ extern crate alloc;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
+use alloc::string::String;
 
 mod sys;
 use sys::*;
@@ -48,8 +49,11 @@ pub type AccountId<'a> = &'a str;
 		let b = get_arg!(get_uint, args, "\"b\":");
 		let a = get_arg!(get_uint, args, "\"a\":");
 		let owner_id = get_arg!(get_string, args, "\"owner_id\":");
-		print(owner_id);
 		printNumber(a + b);
+		print(owner_id);
+		storage_write("test", owner_id);
+		let test = &storage_read("test");
+		print(test);
 	}
 
 	fn print(owner_id: AccountId) {

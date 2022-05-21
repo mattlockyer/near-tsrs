@@ -1,11 +1,14 @@
 import { AccountId, u128 } from './lib/types'
-import { NearContract } from './lib/NearContract'
+import { NearContract, storage_write, storage_read } from './lib/NearContract'
 
 export class Contract implements NearContract {
 
 	public init(owner_id: AccountId, a: u128, b: u128) {
-		this.print(owner_id);
 		this.printNumber(a + b);
+		this.print(owner_id);
+		storage_write("test", owner_id);
+		const test: string = storage_read("test");
+		this.print(test);
 	}
 
 	print(owner_id: AccountId) {

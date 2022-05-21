@@ -1,3 +1,5 @@
+
+
 export const SYS_BASE = `
 use crate::*;
 
@@ -36,5 +38,33 @@ pub(crate) fn register_read(id: u64) -> Vec<u8> {
     //* 		be sufficient length.
     unsafe { near_sys::read_register(id, data.as_ptr() as u64) };
     data
+}
+
+/// helper function to write storage
+pub(crate) fn storage_write(key: &str, value: &str) {
+    //* SAFETY: Assumes valid storage_write implementation.
+    unsafe {
+        near_sys::storage_write(
+            key.len() as u64,
+            key.as_ptr() as u64,
+            value.len() as u64,
+            value.as_ptr() as u64,
+            TEMP_REGISTER,
+        );
+    }
+}
+
+/// helper function to read storage
+pub(crate) fn storage_read(key: &str) -> String {
+    let key_exists =
+        unsafe { near_sys::storage_read(key.len() as u64, key.as_ptr() as u64, TEMP_REGISTER) };
+    if key_exists == 0 {
+        // Return code of 0 means storage key had no entry.
+        sys::panic()
+    }
+    
+    let data = register_read(TEMP_REGISTER);
+    let str = expect(alloc::str::from_utf8(&data).ok());
+    format!("{:?}", &str).replace("\\"", "")
 }
 `
