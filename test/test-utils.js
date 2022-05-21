@@ -91,6 +91,7 @@ const recordStop = async (accountId) => {
 export {
 	init,
 	getAccount,
+	contractAccount,
 	createAccount,
 	getAccountBalance,
 	getAccountState,

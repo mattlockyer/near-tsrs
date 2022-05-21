@@ -1,77 +1,15 @@
 import fs from 'fs';
 
-const CONTRACT_BASE = `
-#![cfg_attr(target_arch = "wasm32", no_std)]
-#![cfg_attr(target_arch = "wasm32", feature(alloc_error_handler))]
-
-#[cfg(target_arch = "wasm32")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
-#[cfg(target_arch = "wasm32")]
-#[panic_handler]
-#[no_mangle]
-pub unsafe fn on_panic(_info: &::core::panic::PanicInfo) -> ! {
-    core::arch::wasm32::unreachable()
-}
-
-#[cfg(target_arch = "wasm32")]
-#[alloc_error_handler]
-#[no_mangle]
-pub unsafe fn on_alloc_error(_: core::alloc::Layout) -> ! {
-    core::arch::wasm32::unreachable()
-}
-
-const TEMP_REGISTER: u64 = 0;
-
-extern crate alloc;
-use alloc::format;
-use alloc::vec;
-use alloc::vec::Vec;
-
-fn panic() -> ! {
-    //* SAFETY: Assumed valid panic host function implementation
-    unsafe { near_sys::panic() }
-}
-
-fn log(message: &str) {
-    unsafe {
-        near_sys::log_utf8(message.len() as _, message.as_ptr() as _);
-    }
-}
-
-/// helper function to read registers
-fn register_read(id: u64) -> Vec<u8> {
-    let len = unsafe { near_sys::register_len(id) };
-    if len == u64::MAX {
-        // Register was not found
-        panic()
-    }
-    let data = vec![0u8; len as usize];
-
-    //* SAFETY: Length of buffer is set dynamically based on "register_len" so it will always
-    //* 		be sufficient length.
-    unsafe { near_sys::read_register(id, data.as_ptr() as u64) };
-    data
-}
-
-/// helper function to panic on None types.
-fn expect<T>(v: Option<T>) -> T {
-    if cfg!(target_arch = "wasm32") {
-        // Allowing because false positive
-        #[allow(clippy::redundant_closure)]
-        v.unwrap_or_else(|| panic())
-    } else {
-        v.unwrap()
-    }
-}
-`
+import './utils.js';
+import { ARGS_BASE, READ_ARGS, toJsonKey, toArgFunc } from './args.js';
+import { SYS_BASE } from './sys.js';
+import { LIB_BASE } from './lib.js';
+import { stripQuotes } from './types.js';
 
 const CONSOLE_LOG = 'console.log'
 
 try {
 	let data = fs.readFileSync('./src/index.ts', 'utf8');
-	let newData = CONTRACT_BASE
 
 	/// transforms all console.log("some string", arg, arg, arg)
 	/// into log("some string {:?} {:?} {:?}", arg, arg, arg)
@@ -86,7 +24,7 @@ try {
 				newInner += ` {:?}`
 				newInnerArgs.push(v)
 			} else {
-				newInner += v.replace(/`|"|'/gi, ``)
+				newInner += stripQuotes(v)
 			}
 		})
 		newInner += `"` + (newInnerArgs.length > 0 ? `, ${newInnerArgs.join(',')}` : ``)
@@ -94,41 +32,51 @@ try {
 		data = data.replace(match, `log(&format!(${newInner}))`)
 	}
 
-	/// parse functions
-	const contractData = data.substring(data.indexOf(`implements NearContract {`))
-	const methodSignatureMatches = data.match(/\s+.+\(.*\)\s*\{/gi).map((v) => v.trim())
+	/// parse public functions
+	const methodSignatureMatches = data.match(/public\s+.+\(.*\)\s*\{/gi).map((v) => v.trim())
 	methodSignatureMatches.forEach((v, i) => {
 
 		if (i === 0) {
-			data = data.substring(data.indexOf(v), data.length - 1)
+			data = data.substring(data.indexOf(v), data.lastIndexOf('}'))
 		}
 
 		const methodName = v.substring(0, v.indexOf('('))
 		data = data.replace(methodName,
 `
 	#[no_mangle]
-	pub fn ${methodName}`
+	pub fn ${methodName.replace('public', '')}`
 		)
 
-		const argMatch = v.substring(v.indexOf('('), v.indexOf('{') + 1)
-		const [argName, argType] = argMatch.split(':').map((v) => v.trim().replace(/\(|\)/gi, ``))
-		data = data.replace(argMatch,
-`	() {
-		unsafe { near_sys::input(TEMP_REGISTER) };
-		let data = register_read(TEMP_REGISTER);
-		let (_, ${argName}_1) = expect(expect(alloc::str::from_utf8(&data).ok()).split_once("\\"${argName}\\":\\""));
-		let (${argName}, _) = expect(${argName}_1.split_once("\\""));`
-		)
+		const paramMatch = v.substring(v.indexOf('('), v.indexOf('{') + 1)
+		data = data.replace(paramMatch, READ_ARGS)
+		/// loop all params
+		paramMatch.split(',').forEach((p) => {
+			const [argName, argType] = p.split(':').map((v) => v.replace(/\(|\)|\{/gi, ``).trim())
+
+			console.log(toArgFunc(argType))
+
+			data = data.insertAfter(READ_ARGS, `
+		let ${argName} = get_arg!(${toArgFunc(argType)}, args, ${toJsonKey(argName)});`
+			)
+		})
+
 	})
 
-	const content = `
-${CONTRACT_BASE}
+	/// write files
+
+	const argsData = ARGS_BASE
+	const sysData = SYS_BASE
+
+	const libData = `
+${LIB_BASE}
 
 ${data}
 `;
 
 	try {
-		fs.writeFileSync('./contract/src/lib.rs', content);
+		fs.writeFileSync('./contract/src/args.rs', argsData);
+		fs.writeFileSync('./contract/src/sys.rs', sysData);
+		fs.writeFileSync('./contract/src/lib.rs', libData);
 		// file written successfully
 	} catch (err) {
 		console.error(err);

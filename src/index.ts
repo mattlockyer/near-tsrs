@@ -1,10 +1,10 @@
-import { AccountId } from './lib/types'
+import { AccountId, u128 } from './lib/types'
 import { NearContract } from './lib/NearContract'
 
 export class Contract implements NearContract {
 
-	init(owner_id: AccountId) {
-		console.log("The owner of this contract will be...", owner_id);
+	public init(owner_id: AccountId, age: u128) {
+		console.log("The arguments are", age, owner_id);
 	}
 
 }

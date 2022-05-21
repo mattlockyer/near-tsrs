@@ -13,6 +13,7 @@
 	},
 	"scripts": {
 		"test-deploy": "yarn parse && yarn build-contract && yarn dev-deploy && yarn test",
+		"test-noparse": "yarn build-contract && yarn dev-deploy && yarn test",
 		"parse": "node ./parser/parse.js",
 
 		"build-contract": "cd contract && ./build.sh && cd ..",

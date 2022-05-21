@@ -1,5 +1,4 @@
-
-
+export const LIB_BASE = `
 #![cfg_attr(target_arch = "wasm32", no_std)]
 #![cfg_attr(target_arch = "wasm32", feature(alloc_error_handler))]
 
@@ -32,18 +31,4 @@ mod sys;
 use sys::*;
 mod args;
 use args::*;
-
-
-
-	#[no_mangle]
-	pub fn  init() {
-        unsafe { near_sys::input(TEMP_REGISTER) };
-        let data = register_read(TEMP_REGISTER);
-        let args = expect(alloc::str::from_utf8(&data).ok());
-
-		let age = get_arg!(get_uint, args, "\"age\":");
-		let owner_id = get_arg!(get_string, args, "\"owner_id\":");
-		log(&format!("The arguments are {:?} {:?}",  age, owner_id));
-	}
-
-
+`

@@ -1,6 +1,6 @@
 import test from 'ava'
 import {
-	init,
+	contractAccount,
 } from './test-utils.js'
 import getConfig from "../utils/config.js";
 const {
@@ -12,10 +12,21 @@ const {
 // test.beforeEach((t) => {
 // });
 
-let contractAccount, event_name, aliceId, bobId, alice, bob;
-
+/// try to call new on contract
 test('contract is deployed', async (t) => {
-	contractAccount = await init();
-
-	t.is(contractId, contractAccount.accountId);
+	try {
+		await contractAccount.functionCall({
+			contractId,
+			methodName: 'init',
+			args: {
+				age: 42,
+				owner_id: "someone.near",
+			},
+			gas
+		});
+		t.true(true);
+	} catch (e) {
+		console.warn(e)
+		t.true(false);
+	}
 });
