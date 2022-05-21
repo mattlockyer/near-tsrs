@@ -1,25 +1,25 @@
-const fs = require('fs');
-const BN = require('bn.js');
-const nearAPI = require('near-api-js');
+import fs from 'fs';
+import BN from 'bn.js'
+import * as nearAPI from 'near-api-js'
+import { connection, keyStore, contractAccount } from '../utils/near-utils.js';
+import getConfig from '../utils/config.js'
+const {
+	networkId, contractId, gas,
+	NEW_ACCOUNT_AMOUNT,
+} = getConfig();
 const { 
 	KeyPair,
 	utils: { format: {
 		formatNearAmount
 	} }
 } = nearAPI;
-const { connection, keyStore, contractAccount } = require('../utils/near-utils');
-const getConfig = require("../utils/config");
-const {
-	networkId, contractId, gas,
-	NEW_ACCOUNT_AMOUNT,
-} = getConfig();
 
 const init = async (owner_id = contractId) => {
 	/// try to call new on contract, swallow e if already initialized
 	try {
 		await contractAccount.functionCall({
 			contractId,
-			methodName: 'new',
+			methodName: 'init',
 			args: {
 				owner_id
 			},
@@ -88,7 +88,7 @@ const recordStop = async (accountId) => {
 	console.log('\n');
 };
 
-module.exports = {
+export {
 	init,
 	getAccount,
 	createAccount,

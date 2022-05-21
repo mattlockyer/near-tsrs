@@ -1,6 +1,6 @@
-const fs = require("fs");
-const nearAPI = require("near-api-js");
-const getConfig = require("./config");
+import fs from 'fs'
+import * as nearAPI from 'near-api-js'
+import getConfig from './config.js'
 const { nodeUrl, walletUrl, networkId, contractId, isBrowser } = getConfig();
 
 const {
@@ -52,7 +52,7 @@ const near = new Near({
 const { connection } = near;
 const contractAccount = new Account(connection, contractId);
 
-module.exports = {
+export {
 	near,
 	credentials,
 	keyStore,

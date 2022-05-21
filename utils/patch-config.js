@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs'
 const contractName = fs.readFileSync('./neardev/dev-account').toString()
 const path = './utils/config.js'
  

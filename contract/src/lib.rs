@@ -1,90 +1,79 @@
-mod utils;
 
-use crate::utils::*;
 
-use near_sdk::{
-	// log,
-	require,
-	env, near_bindgen, Balance, AccountId, BorshStorageKey, PanicOnDefault, Promise,
-	borsh::{self, BorshDeserialize, BorshSerialize},
-	collections::{LookupMap, UnorderedMap, UnorderedSet},
-	json_types::{U128},
-};
+#![cfg_attr(target_arch = "wasm32", no_std)]
+#![cfg_attr(target_arch = "wasm32", feature(alloc_error_handler))]
 
-pub const STORAGE_KEY_DELIMETER: char = '|';
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[derive(BorshSerialize, BorshStorageKey)]
-enum StorageKey {
-	EventsByName,
-    NetworksByOwner { event_name: String },
-    Connections { event_name_and_owner_id: String },
+#[cfg(target_arch = "wasm32")]
+#[panic_handler]
+#[no_mangle]
+pub unsafe fn on_panic(_info: &::core::panic::PanicInfo) -> ! {
+    core::arch::wasm32::unreachable()
 }
 
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Network {
-	connections: UnorderedSet<AccountId>,
+#[cfg(target_arch = "wasm32")]
+#[alloc_error_handler]
+#[no_mangle]
+pub unsafe fn on_alloc_error(_: core::alloc::Layout) -> ! {
+    core::arch::wasm32::unreachable()
 }
 
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Event {
-	networks_by_owner: LookupMap<AccountId, Network>,
+const TEMP_REGISTER: u64 = 0;
+
+extern crate alloc;
+use alloc::format;
+use alloc::vec;
+use alloc::vec::Vec;
+
+fn panic() -> ! {
+    //* SAFETY: Assumed valid panic host function implementation
+    unsafe { near_sys::panic() }
 }
 
-#[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Contract {
-	owner_id: AccountId,
-	events_by_name: UnorderedMap<String, Event>,
-}
-
-#[near_bindgen]
-impl Contract {
-    #[init]
-    pub fn new(owner_id: AccountId) -> Self {
-        Self {
-			owner_id,
-			events_by_name: UnorderedMap::new(StorageKey::EventsByName),
-        }
-    }
-	
-    #[payable]
-    pub fn create_event(&mut self, event_name: String) {
-		let initial_storage_usage = env::storage_usage();
-
-		require!(env::predecessor_account_id() == self.owner_id, "owner only");
-		
-        require!(self.events_by_name.insert(&event_name.clone(), &Event{
-			networks_by_owner: LookupMap::new(StorageKey::NetworksByOwner { event_name }),
-		}).is_none(), "event exists");
-
-        refund_deposit(env::storage_usage() - initial_storage_usage);
-    }
-	
-    #[payable]
-    pub fn create_connection(&mut self, event_name: String, new_connection_id: AccountId) {
-		let initial_storage_usage = env::storage_usage();
-
-		let network_owner_id = env::predecessor_account_id();
-		let mut event = self.events_by_name.get(&event_name).unwrap_or_else(|| env::panic_str("no event"));
-		let mut network = event.networks_by_owner.get(&network_owner_id).unwrap_or_else(|| Network{
-			connections: UnorderedSet::new(StorageKey::Connections { event_name_and_owner_id: format!("{}{}{}", event_name, STORAGE_KEY_DELIMETER, network_owner_id.clone()) })
-		});
-
-		network.connections.insert(&new_connection_id);
-		event.networks_by_owner.insert(&network_owner_id, &network);
-
-        refund_deposit(env::storage_usage() - initial_storage_usage);
-    }
-
-	/// views
-	
-    pub fn get_events(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<String> {
-		unordered_map_key_pagination(&self.events_by_name, from_index, limit)
-    }
-	
-    pub fn get_connections(&self, event_name: String, network_owner_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<AccountId> {
-		let event = self.events_by_name.get(&event_name).unwrap_or_else(|| env::panic_str("no event"));
-		let network = event.networks_by_owner.get(&network_owner_id).unwrap_or_else(|| env::panic_str("no network"));
-		unordered_set_pagination(&network.connections, from_index, limit)
+fn log(message: &str) {
+    unsafe {
+        near_sys::log_utf8(message.len() as _, message.as_ptr() as _);
     }
 }
+
+/// helper function to read registers
+fn register_read(id: u64) -> Vec<u8> {
+    let len = unsafe { near_sys::register_len(id) };
+    if len == u64::MAX {
+        // Register was not found
+        panic()
+    }
+    let data = vec![0u8; len as usize];
+
+    //* SAFETY: Length of buffer is set dynamically based on "register_len" so it will always
+    //* 		be sufficient length.
+    unsafe { near_sys::read_register(id, data.as_ptr() as u64) };
+    data
+}
+
+/// helper function to panic on None types.
+fn expect<T>(v: Option<T>) -> T {
+    if cfg!(target_arch = "wasm32") {
+        // Allowing because false positive
+        #[allow(clippy::redundant_closure)]
+        v.unwrap_or_else(|| panic())
+    } else {
+        v.unwrap()
+    }
+}
+
+
+
+	#[no_mangle]
+	pub fn init	() {
+		unsafe { near_sys::input(TEMP_REGISTER) };
+		let data = register_read(TEMP_REGISTER);
+		let (_, owner_id_1) = expect(expect(alloc::str::from_utf8(&data).ok()).split_once("\"owner_id\":\""));
+		let (owner_id, _) = expect(owner_id_1.split_once("\""));
+		log(&format!("The owner of this contract will be... {:?}",  owner_id));
+	}
+
+
