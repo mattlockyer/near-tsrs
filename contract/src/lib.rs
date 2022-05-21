@@ -34,6 +34,8 @@ mod args;
 use args::*;
 
 
+pub type AccountId<'a> = &'a str;
+
 
 	#[no_mangle]
 	pub fn  init() {
@@ -43,6 +45,10 @@ use args::*;
 
 		let age = get_arg!(get_uint, args, "\"age\":");
 		let owner_id = get_arg!(get_string, args, "\"owner_id\":");
+		print(owner_id, age)
+	}
+
+	fn print(owner_id: AccountId, age: u128) {
 		log(&format!("The arguments are {:?} {:?}",  age, owner_id));
 	}
 
