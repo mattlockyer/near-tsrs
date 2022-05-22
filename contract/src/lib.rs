@@ -29,7 +29,6 @@ extern crate alloc;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
-use alloc::string::String;
 
 mod sys;
 use sys::*;
@@ -51,17 +50,32 @@ pub type AccountId<'a> = &'a str;
 		let owner_id = get_arg!(get_string, args, "\"owner_id\":");
 		printNumber(a + b);
 		print(owner_id);
-		storage_write("test", owner_id);
-		let test = &storage_read("test");
+		printNumber(env_read("storage_usage").into());
+		storage_write("test",  owner_id);
+		let tmp1653236079834 = &storage_read("test");let test = stringify(tmp1653236079834);
 		print(test);
+		print(stringify(&env_read_register("predecessor_account_id")));
+		print(stringify(&env_read_register("current_account_id")));
+		print(stringify(&env_read_register("signer_account_id")));
+		printArray(env_read_register("signer_account_pk"));
+		printArray(env_read_register("random_seed"));
+		printNumber(env_read("block_index").into());
+		printNumber(env_read("block_timestamp").into());
+		printNumber(env_read("used_gas").into());
+		printNumber(env_read("prepaid_gas").into());
+		printNumber(env_read("storage_usage").into());
 	}
 
 	fn print(owner_id: AccountId) {
-		log(&format!("The arguments are {:?}",  owner_id));
+		log(&format!("String {:?}",  owner_id));
+	}
+
+	fn printArray(v: Vec<u8>) {
+		log(&format!("String {:?}",  v));
 	}
 
 	fn printNumber(v: u128) {
-		log(&format!("Number:  {:?}",  v));
+		log(&format!("Number {:?}",  v));
 	}
 
 

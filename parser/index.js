@@ -6,12 +6,12 @@ import { SYS_BASE } from './sys.js';
 import { LIB_BASE } from './lib.js';
 import { TYPES_BASE } from './types.js';
 import {
+	parseEnvCalls,
 	parseConsole,
 	parseMethods,
 	parseMethodCalls,
 	parsePublicMethods,
 	parseVariables,
-	parseSysCalls,
 } from './helpers.js';
 
 
@@ -19,10 +19,10 @@ try {
 	let data = fs.readFileSync('./src/index.ts', 'utf8');
 
 	data = parseVariables(data)
+	data = parseEnvCalls(data)
 	data = parseConsole(data)
 	data = parseMethods(data)
 	data = parseMethodCalls(data)
-	data = parseSysCalls(data)
 	data = parsePublicMethods(data)
 	// console.log(data)
 

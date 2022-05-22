@@ -14,6 +14,10 @@ pub(crate) fn log(message: &str) {
     }
 }
 
+pub(crate) fn stringify(data: &[u8]) -> &str {
+    expect(alloc::str::from_utf8(&data).ok())
+}
+
 /// helper function to panic on None types.
 pub(crate) fn expect<T>(v: Option<T>) -> T {
     if cfg!(target_arch = "wasm32") {
@@ -55,16 +59,50 @@ pub(crate) fn storage_write(key: &str, value: &str) {
 }
 
 /// helper function to read storage
-pub(crate) fn storage_read(key: &str) -> String {
+pub(crate) fn storage_read(key: &str) -> Vec<u8> {
     let key_exists =
         unsafe { near_sys::storage_read(key.len() as u64, key.as_ptr() as u64, TEMP_REGISTER) };
     if key_exists == 0 {
         // Return code of 0 means storage key had no entry.
         sys::panic()
     }
-    
-    let data = register_read(TEMP_REGISTER);
-    let str = expect(alloc::str::from_utf8(&data).ok());
-    format!("{:?}", &str).replace("\\"", "")
+    register_read(TEMP_REGISTER)
+}
+
+/// helper function to read env values that are u64 only
+pub(crate) fn env_read(key: &str) -> u64 {
+    unsafe {
+        match key.as_bytes() {
+            ${
+                [
+                    'block_index',
+                    'block_timestamp',
+                    'prepaid_gas',
+                    'used_gas',
+                    'storage_usage',
+                ].map((v) => `b"${v}" => near_sys::${v}()`).join(',\n')
+            },
+            _ => panic(),
+        }
+    }
+}
+
+/// helper function to read env values that need register read
+pub(crate) fn env_read_register(key: &str) -> Vec<u8> {
+    unsafe {
+        match key.as_bytes() {
+            ${
+                [
+                    'predecessor_account_id',
+                    'current_account_id',
+                    'signer_account_id',
+                    'signer_account_pk',
+                    'random_seed'
+                ].map((v) => `b"${v}" => near_sys::${v}(TEMP_REGISTER)`).join(',\n')
+            },
+            _ => panic(),
+        };
+    }
+    register_read(TEMP_REGISTER)
 }
 `
