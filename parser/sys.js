@@ -29,6 +29,17 @@ pub(crate) fn expect<T>(v: Option<T>) -> T {
     }
 }
 
+/// helper function to return strings
+const DOUBLE_QUOTE_BYTE: u8 = b'\"';
+pub(crate) fn return_string(str: &str) {
+    let mut ret = vec![DOUBLE_QUOTE_BYTE];
+    ret.extend_from_slice(str.as_bytes());
+    ret.push(DOUBLE_QUOTE_BYTE);
+    unsafe {
+        near_sys::value_return(ret.len() as u64, ret.as_ptr() as u64);
+    }
+}
+
 /// helper function to read registers
 pub(crate) fn register_read(id: u64) -> Vec<u8> {
     let len = unsafe { near_sys::register_len(id) };

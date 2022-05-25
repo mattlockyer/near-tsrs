@@ -3,6 +3,34 @@ import { READ_ARGS, toJsonKey, toArgFunc } from './args.js';
 import { stripQuotes } from './types.js';
 const CONSOLE_LOG = 'console.log'
 
+/// parse helpers
+const randVar = () => `tmp${Math.floor(Math.random()*1000000000000)}`
+const getMethodBody = (data, v) => {
+	let body = data.substring(data.indexOf(v))
+	body = body.substring(body.indexOf('{') + 1)
+	body = body.substring(0, body.indexOf(body.match(/\}\s+.+\(.*\)\s*\{/gi)[0]))
+	return body
+}
+
+/// parsing the TS data
+
+export const parseReturnParams = (data) => {
+	data.match(/\w*\s*\(.*\):\s*\w*\s*{/gi)
+	?.forEach((l) => {
+		let body = getMethodBody(data, l)
+		const replace = body
+
+		data = data.replace(l, l.replace(/:.*\{/gi, ' {'))
+		const isNumber = /u8|u64|u128/gi.test(l)
+		
+		body = body.split('\n').map((l) => {
+			if (!/return/.test(l)) return l
+			return l.replace('return ', 'return_string(').replace(';', ');')
+		}).join('\n')
+		data = data.replace(replace, body)
+	})
+	return data
+}
 
 export const parseMethodCalls = (data) => data
 .replace(/this\./gi, '')
@@ -79,7 +107,10 @@ export const parseConsole = (data) => {
 		let newInner = `"`
 		let newInnerArgs = []
 		inner.split(`,`).forEach((v, i) => {
-			if (i > 0) {
+			if (i == 0 && !/"|'|`/gi.test(v.trim().charAt(0))) {
+				newInner += `{:?}`
+				newInnerArgs.push(v)
+			} else if (i > 0) {
 				newInner += ` {:?}`
 				newInnerArgs.push(v)
 			} else {
@@ -96,14 +127,9 @@ export const parseConsole = (data) => {
 
 export const parsePublicMethods = (data) => {
 	/// parse public functions
-	const methodSignatureMatches = data.match(/public\s+.+\(.*\)\s*\{/gi).map((v) => v.trim())
+	const methodSignatureMatches = data.match(/public\s+.+\(.*\)\s*.*\s*\{/gi).map((v) => v.trim())
 	methodSignatureMatches.forEach((v, i) => {
-
-
-		let body = data.substring(data.indexOf(v))
-		body = body.substring(body.indexOf('{') + 1)
-		body = body.substring(0, body.indexOf(body.match(/\}\s+.+\(.*\)\s*\{/gi)[0]))
-
+		let body = getMethodBody(data, v)
 		const replace = body
 
 		const methodName = v.substring(0, v.indexOf('('))
@@ -136,7 +162,7 @@ export const parsePublicMethods = (data) => {
 
 export const parseMethods = (data) => {
 	/// parse public functions
-	data.match(/\s+.+\(.*\)\s*\{/gi)
+	data.match(/\s+.+\(.*\)\s*.*\s*\{/gi)
 		.filter((v) => !/public|for|if|switch/gi.test(v))
 		.map((v) => v.trim())
 		.forEach((v, i) => {
@@ -182,7 +208,7 @@ export const parseEnvCalls = (data) => {
 				break;
 				// more complex sys calls
 				case 'storage_read': {
-					const tmp = `tmp${Date.now()}`
+					const tmp = randVar()
 					const index = data.substring(0, data.indexOf(v)).lastIndexOf('\n');
 					data = data.insertBeforeIndex(index, `
 		let ${tmp} = &storage_read(${args[0]});`)

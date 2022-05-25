@@ -45,3 +45,16 @@ test('contract checkOwner', async (t) => {
 		t.true(false);
 	}
 });
+
+test('contract viewOwner', async (t) => {
+	try {
+		const owner = await contractAccount.viewFunction(contractId, 'viewOwner')
+		
+		console.log(owner)
+
+		t.is(owner, contractId)
+	} catch (e) {
+		console.warn(e)
+		t.true(false);
+	}
+});

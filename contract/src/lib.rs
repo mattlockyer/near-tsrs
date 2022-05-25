@@ -66,10 +66,19 @@ pub type AccountId<'a> = &'a str;
 	
 	#[no_mangle]
 	pub fn checkOwner() {
-		let tmp1653457353713 = &storage_read("owner_id");
-		if stringify(&env_read_register("predecessor_account_id")) != stringify(tmp1653457353713) {
+		let tmp735666324057 = &storage_read("owner_id");
+		if stringify(&env_read_register("predecessor_account_id")) != stringify(tmp735666324057) {
 			panic();
 		}
+	}
+
+	
+	#[no_mangle]
+	pub fn viewOwner() {
+		let tmp284629443140 = &storage_read("owner_id");
+		let owner = stringify(tmp284629443140);
+		log(&format!("{:?}", owner));
+		return_string(owner);
 	}
 
 	fn print(owner_id: AccountId) {

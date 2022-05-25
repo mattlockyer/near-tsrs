@@ -47,6 +47,12 @@ export class Contract implements NearContract {
 		}
 	}
 
+	public viewOwner(): AccountId {
+		const owner = env.storage_read("owner_id");
+		console.log(owner);
+		return owner;
+	}
+
 	print(owner_id: AccountId) {
 		console.log("String", owner_id);
 	}

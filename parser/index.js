@@ -6,6 +6,7 @@ import { SYS_BASE } from './sys.js';
 import { LIB_BASE } from './lib.js';
 import { TYPES_BASE } from './types.js';
 import {
+	parseReturnParams,
 	parseVariables,
 	parseLogic,
 	parseLoops,
@@ -28,11 +29,12 @@ const init = async () => {
 		data = data.substring(data.indexOf('implements NearContract'), data.lastIndexOf('}'))
 		data = data.substring(data.indexOf('{') + 1)
 
+		data = parseReturnParams(data)
 		data = parseLogic(data)
 		data = parseLoops(data)
 		data = parseVariables(data)
-		data = parseEnvCalls(data)
 		data = parseConsole(data)
+		data = parseEnvCalls(data)
 		data = parseMethods(data)
 		data = parseMethodCalls(data)
 		data = parsePublicMethods(data)
