@@ -12,8 +12,8 @@
 		"near-api-js": "^0.44.2"
 	},
 	"scripts": {
-		"test": "yarn parse && yarn build-contract && yarn dev-deploy && yarn test",
-		"test-np": "yarn build-contract && yarn dev-deploy && yarn test",
+		"test": "yarn parse && yarn build-contract && yarn dev-deploy && yarn ava",
+		"test-np": "yarn build-contract && yarn dev-deploy && yarn ava",
 		"parse": "node ./parser/index.js",
 		"build-contract": "cd contract && ./build.sh && cd ..",
 		"patch-config": "node ./utils/patch-config.js",

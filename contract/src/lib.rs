@@ -39,43 +39,37 @@ use args::*;
 pub type AccountId<'a> = &'a str;
 
 
+
+	
 	#[no_mangle]
-	pub fn  init() {
+	pub fn init() {
         unsafe { near_sys::input(TEMP_REGISTER) };
         let data = register_read(TEMP_REGISTER);
         let args = expect(alloc::str::from_utf8(&data).ok());
 
-		let b = get_arg!(get_uint, args, "\"b\":");
-		let a = get_arg!(get_uint, args, "\"a\":");
-		let owner_id = get_arg!(get_string, args, "\"owner_id\":");
+			let b = get_arg!(get_uint, args, "\"b\":");
+			let a = get_arg!(get_uint, args, "\"a\":");
+			let owner_id = get_arg!(get_string, args, "\"owner_id\":");
 
 		let temp = owner_id;
 		print(temp);
+		storage_write("owner_id",  temp);
 
 		printNumber(a + b);
-		print(owner_id);
-		printNumber(env_read("storage_usage").into());
-		storage_write("test",  owner_id);
-		let tmp1653449524878 = &storage_read("test");let test = stringify(tmp1653449524878);
-		print(test);
-		print(stringify(&env_read_register("predecessor_account_id")));
-		print(stringify(&env_read_register("current_account_id")));
-		print(stringify(&env_read_register("signer_account_id")));
-		printArray(env_read_register("signer_account_pk"));
-		printNumber(env_read("block_index").into());
-		printNumber(env_read("block_timestamp").into());
-		printNumber(env_read("used_gas").into());
-		printNumber(env_read("prepaid_gas").into());
-		printNumber(env_read("storage_usage").into());
 
 
-		let randomSeed = env_read_register("random_seed");
 
 
-		for (index, x) in randomSeed.iter().enumerate() {
-			printNumber(randomSeed[index].into());
+
+	}
+
+	
+	#[no_mangle]
+	pub fn checkOwner() {
+		let tmp1653457353713 = &storage_read("owner_id");
+		if stringify(&env_read_register("predecessor_account_id")) != stringify(tmp1653457353713) {
+			panic();
 		}
-
 	}
 
 	fn print(owner_id: AccountId) {

@@ -12,8 +12,7 @@ const {
 // test.beforeEach((t) => {
 // });
 
-/// try to call new on contract
-test('contract is deployed', async (t) => {
+test('contract init', async (t) => {
 	try {
 		await contractAccount.functionCall({
 			contractId,
@@ -21,8 +20,23 @@ test('contract is deployed', async (t) => {
 			args: {
 				a: 21,
 				b: 21,
-				owner_id: "someone.near",
+				owner_id: contractId,
 			},
+			gas
+		});
+		t.true(true);
+	} catch (e) {
+		console.warn(e)
+		t.true(false);
+	}
+});
+
+test('contract checkOwner', async (t) => {
+	try {
+		await contractAccount.functionCall({
+			contractId,
+			methodName: 'checkOwner',
+			args: {},
 			gas
 		});
 		t.true(true);

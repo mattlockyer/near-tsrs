@@ -5,6 +5,9 @@ export interface NearContract {
 }
 
 export const env = {
+	// helper functions
+	panic: (): void => {},
+	// storage
 	storage_write: (key: string, value: string | number) => {},
 	storage_read: (key: string): string => '',
 	// env_read_register

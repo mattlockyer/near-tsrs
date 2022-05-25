@@ -13,8 +13,22 @@ export const parseVariables = (data) => data
 .replace(/:\s*string/gi, '')
 .replace(/Array</gi, 'Vec<')
 
+export const parseLogic = (data) => {
+	const logicMatches = data.match(/if\s*\(.*\)\s{/gi)
+	if (!logicMatches) return data
+
+	logicMatches.forEach((l) => {
+		const newLine = l.replace(/if\s*\(/gi, 'if ').replace(/\)\s*\{/gi, ' {')
+		data = data.replace(l, newLine)
+	})
+
+	return data
+}
+
 export const parseLoops = (data) => {
 	const loopMatches = data.match(/for\s*\(.*\)\s{/gi)
+	if (!loopMatches) return data
+
 	loopMatches.forEach((l) => {
 
 		let newLoop = ''
@@ -35,8 +49,6 @@ export const parseLoops = (data) => {
 			const name = bits[0].split('(')[1].trim().split(' ')[1]
 			const arr = bits[1].split(')')[0].trim()
 
-			console.log(name, arr)
-
 			newLoop = `for ${name} in ${arr} {`;
 		}
 
@@ -46,9 +58,7 @@ export const parseLoops = (data) => {
 			const name = bits[0].split('(')[1].trim().split(' ')[1]
 			const arr = bits[1].split(')')[0].trim()
 
-			console.log(name, arr)
-
-			newLoop = `for (${name}, x) in ${arr}.iter().enumerate() {`;
+			newLoop = `for (${name}, _x) in ${arr}.iter().enumerate() {`;
 		}
 
 		data = data.replace(l, newLoop)
@@ -89,27 +99,36 @@ export const parsePublicMethods = (data) => {
 	const methodSignatureMatches = data.match(/public\s+.+\(.*\)\s*\{/gi).map((v) => v.trim())
 	methodSignatureMatches.forEach((v, i) => {
 
-		if (i === 0) {
-			data = data.substring(data.indexOf(v), data.lastIndexOf('}'))
-		}
+
+		let body = data.substring(data.indexOf(v))
+		body = body.substring(body.indexOf('{') + 1)
+		body = body.substring(0, body.indexOf(body.match(/\}\s+.+\(.*\)\s*\{/gi)[0]))
+
+		const replace = body
 
 		const methodName = v.substring(0, v.indexOf('('))
 		data = data.replace(methodName,
 `
 	#[no_mangle]
-	pub fn ${methodName.replace('public', '')}`
+	pub fn${methodName.replace('public', '')}`
 		)
 
 		const paramMatch = v.substring(v.indexOf('('), v.indexOf('{') + 1)
-		data = data.replace(paramMatch, READ_ARGS)
-		/// loop all params
-		paramMatch.split(',').forEach((p) => {
-			const [argName, argType] = p.split(':').map((v) => v.replace(/\(|\)|\{/gi, ``).trim())
-			data = data.insertAfter(READ_ARGS, `
-		let ${argName} = get_arg!(${toArgFunc(argType)}, args, ${toJsonKey(argName)});`
-			)
-		})
 
+		if (!/\(\)/gi.test(paramMatch)) {
+			data = data.replace(paramMatch, '')
+			body = READ_ARGS + body
+
+			/// loop all params
+			paramMatch.split(',').forEach((p) => {
+				const [argName, argType] = p.split(':').map((v) => v.replace(/\(|\)|\{/gi, ``).trim())
+				body = body.insertAfter(READ_ARGS, `
+			let ${argName} = get_arg!(${toArgFunc(argType)}, args, ${toJsonKey(argName)});`
+				)
+			})
+		}
+
+		data = data.replace(replace, body)
 	})
 
 	return data
@@ -118,7 +137,7 @@ export const parsePublicMethods = (data) => {
 export const parseMethods = (data) => {
 	/// parse public functions
 	data.match(/\s+.+\(.*\)\s*\{/gi)
-		.filter((v) => !/public|for/gi.test(v))
+		.filter((v) => !/public|for|if|switch/gi.test(v))
 		.map((v) => v.trim())
 		.forEach((v, i) => {
 			data = data.insertBefore(v, 'fn ')
@@ -128,12 +147,18 @@ export const parseMethods = (data) => {
 }
 
 export const parseEnvCalls = (data) => {
-	data.match(/env\..*\([^\)]*/gi)
+	data.match(/env\.\w*\([^\)]*/gi)
 		.map((v) => (v + ')').trim())
 		.forEach((v, i) => {
 			const call = v.split('.')[1].split('(')[0]
 			const args = v.split('(')[1].split(')')[0].split(',')
+
 			switch (call) {
+				// panic
+				case 'panic': {
+					data = data.replace(v, 'panic()')
+				}
+				break;
 				// env_read_register
 				case 'predecessor_account_id':
 				case 'current_account_id':
@@ -158,8 +183,9 @@ export const parseEnvCalls = (data) => {
 				// more complex sys calls
 				case 'storage_read': {
 					const tmp = `tmp${Date.now()}`
-					const index = data.substring(0, data.indexOf(v)).lastIndexOf('let');
-					data = data.insertBeforeIndex(index, `let ${tmp} = &storage_read(${args[0]});`)
+					const index = data.substring(0, data.indexOf(v)).lastIndexOf('\n');
+					data = data.insertBeforeIndex(index, `
+		let ${tmp} = &storage_read(${args[0]});`)
 					data = data.replace(v, `stringify(${tmp})`)
 				}
 				break;
