@@ -13,6 +13,51 @@ export const parseVariables = (data) => data
 .replace(/:\s*string/gi, '')
 .replace(/Array</gi, 'Vec<')
 
+export const parseLoops = (data) => {
+	const loopMatches = data.match(/for\s*\(.*\)\s{/gi)
+	loopMatches.forEach((l) => {
+
+		let newLoop = ''
+
+		// for (let i = 0; i < randomSeed.length; i+=4) {
+		if (/for\s*\(\s*let\s*.*=\s*\d+;/gi.test(l)) {
+			const bits = l.split(';')
+			const name = bits[0].split('let')[1].split('=')[0].trim()
+			const start = bits[0].split('=')[1].trim()
+			const end = bits[1].split('<')[1].trim()
+			const step = /\+\+/.test(bits[2]) ? 1 : bits[2].split('=')[1].split(')')[0].trim()
+			newLoop = `for ${name} in (${start}..${end}).step_by(${step}) {`.replace(/length/gi, 'len()');
+		}
+
+		// for (const unit of randomSeed) {
+		if (/for\s+\(.*of.*\)/gi.test(l)) {
+			const bits = l.split(' of ')
+			const name = bits[0].split('(')[1].trim().split(' ')[1]
+			const arr = bits[1].split(')')[0].trim()
+
+			console.log(name, arr)
+
+			newLoop = `for ${name} in ${arr} {`;
+		}
+
+		// for (let index in randomSeed) {
+		if (/for\s+\(.*in.*\)/gi.test(l)) {
+			const bits = l.split(' in ')
+			const name = bits[0].split('(')[1].trim().split(' ')[1]
+			const arr = bits[1].split(')')[0].trim()
+
+			console.log(name, arr)
+
+			newLoop = `for (${name}, x) in ${arr}.iter().enumerate() {`;
+		}
+
+		data = data.replace(l, newLoop)
+	})
+
+	return data
+}
+
+
 export const parseConsole = (data) => {
 
 	/// transforms all console.log("some string", arg, arg, arg)
@@ -73,7 +118,7 @@ export const parsePublicMethods = (data) => {
 export const parseMethods = (data) => {
 	/// parse public functions
 	data.match(/\s+.+\(.*\)\s*\{/gi)
-		.filter((v) => v.indexOf('public') === -1)
+		.filter((v) => !/public|for/gi.test(v))
 		.map((v) => v.trim())
 		.forEach((v, i) => {
 			data = data.insertBefore(v, 'fn ')
@@ -83,7 +128,7 @@ export const parseMethods = (data) => {
 }
 
 export const parseEnvCalls = (data) => {
-	const envCalls = data.match(/env\..*\([^\)]*/gi)
+	data.match(/env\..*\([^\)]*/gi)
 		.map((v) => (v + ')').trim())
 		.forEach((v, i) => {
 			const call = v.split('.')[1].split('(')[0]

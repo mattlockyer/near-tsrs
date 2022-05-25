@@ -48,22 +48,34 @@ pub type AccountId<'a> = &'a str;
 		let b = get_arg!(get_uint, args, "\"b\":");
 		let a = get_arg!(get_uint, args, "\"a\":");
 		let owner_id = get_arg!(get_string, args, "\"owner_id\":");
+
+		let temp = owner_id;
+		print(temp);
+
 		printNumber(a + b);
 		print(owner_id);
 		printNumber(env_read("storage_usage").into());
 		storage_write("test",  owner_id);
-		let tmp1653236079834 = &storage_read("test");let test = stringify(tmp1653236079834);
+		let tmp1653449524878 = &storage_read("test");let test = stringify(tmp1653449524878);
 		print(test);
 		print(stringify(&env_read_register("predecessor_account_id")));
 		print(stringify(&env_read_register("current_account_id")));
 		print(stringify(&env_read_register("signer_account_id")));
 		printArray(env_read_register("signer_account_pk"));
-		printArray(env_read_register("random_seed"));
 		printNumber(env_read("block_index").into());
 		printNumber(env_read("block_timestamp").into());
 		printNumber(env_read("used_gas").into());
 		printNumber(env_read("prepaid_gas").into());
 		printNumber(env_read("storage_usage").into());
+
+
+		let randomSeed = env_read_register("random_seed");
+
+
+		for (index, x) in randomSeed.iter().enumerate() {
+			printNumber(randomSeed[index].into());
+		}
+
 	}
 
 	fn print(owner_id: AccountId) {
