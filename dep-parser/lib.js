@@ -25,6 +25,7 @@ pub unsafe fn on_alloc_error(_: core::alloc::Layout) -> ! {
 const TEMP_REGISTER: u64 = 0;
 
 extern crate alloc;
+use near_sys;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;

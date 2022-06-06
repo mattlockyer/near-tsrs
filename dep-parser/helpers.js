@@ -1,4 +1,5 @@
 
+import dJSON from 'dirty-json';
 import { READ_ARGS, toJsonKey, toArgFunc } from './args.js';
 import { stripQuotes } from './types.js';
 const CONSOLE_LOG = 'console.log'
@@ -13,6 +14,18 @@ const getMethodBody = (data, v) => {
 }
 
 /// parsing the TS data
+
+export const parseInto = (data) => data.replace(/\.into_u\d+\(\)/gi, '.into()')
+
+export const parseComments = (data) => {
+	data = data.split('\n')
+		.filter((l) => !/\/\//gi.test(l))
+		.join('\n')
+
+	data = data.replace(/\/\*(.*)\*\//gs, '')
+
+	return data
+}
 
 export const parseReturnParams = (data) => {
 	data.match(/\w*\s*\(.*\):\s*\w*\s*{/gi)
@@ -35,11 +48,16 @@ export const parseReturnParams = (data) => {
 export const parseMethodCalls = (data) => data
 .replace(/this\./gi, '')
 
-export const parseVariables = (data) => data
-.replace(/let/gi, 'let mut')
-.replace(/const/gi, 'let')
-.replace(/:\s*string/gi, '')
-.replace(/Array</gi, 'Vec<')
+export const parseVariables = (data) => {
+
+	
+	return data
+		.replace(/var/gi, 'let mut')
+		.replace(/let/gi, 'let mut')
+		.replace(/const/gi, 'let')
+		.replace(/:\s*string/gi, '')
+		.replace(/Array</gi, 'Vec<')
+}
 
 export const parseLogic = (data) => {
 	const logicMatches = data.match(/if\s*\(.*\)\s{/gi)
@@ -173,28 +191,34 @@ export const parseMethods = (data) => {
 }
 
 export const parseEnvCalls = (data) => {
-	data.match(/env\.\w*\([^\)]*/gi)
-		.map((v) => (v + ')').trim())
-		.forEach((v, i) => {
-			const call = v.split('.')[1].split('(')[0]
-			const args = v.split('(')[1].split(')')[0].split(',')
+	data.match(/env\.\w*\([^\)]*/gim)
+		.map((m) => (m + ')').trim())
+		.forEach((m, i) => {
+			const call = m.split('.')[1].split('(')[0]
+			let args = m.split('(')[1].split(')')[0].trim()
+			if (args.indexOf('{') === 0) {
+				args = args.replace(/\s+as\s+u\d+/gi, '')
+				args = dJSON.parse(args)
+			} else {
+				args = args.split(',')
+			}
 
 			switch (call) {
 				// panic
 				case 'panic': {
-					data = data.replace(v, 'panic()')
+					data = data.replace(m, 'panic()')
 				}
 				break;
 				// env_read_register
 				case 'predecessor_account_id':
 				case 'current_account_id':
 				case 'signer_account_id': {
-					data = data.replace(v, `stringify(&env_read_register("${call}"))`)
+					data = data.replace(m, `stringify(&env_read_register("${call}"))`)
 				}
 				break;
 				case 'signer_account_pk':
 				case 'random_seed': {
-					data = data.replace(v, `env_read_register("${call}")`)
+					data = data.replace(m, `env_read_register("${call}")`)
 				}
 				break;
 				// env_read (u64)
@@ -203,22 +227,69 @@ export const parseEnvCalls = (data) => {
 				case 'used_gas': 
 				case 'prepaid_gas': 
 				case 'storage_usage': {
-					data = data.replace(v, `env_read("${call}").into()`)
+					data = data.replace(m, `env_read("${call}").into()`)
 				}
 				break;
 				// more complex sys calls
 				case 'storage_read': {
 					const tmp = randVar()
-					const index = data.substring(0, data.indexOf(v)).lastIndexOf('\n');
-					data = data.insertBeforeIndex(index, `
-		let ${tmp} = &storage_read(${args[0]});`)
-					data = data.replace(v, `stringify(${tmp})`)
+					data = data.insertLineBefore(m, `let ${tmp} = &storage_read(${args[0]});`)
+					data = data.replace(m, `stringify(${tmp})`)
 				}
 				break;
 				case 'storage_write': {
-					data = data.replace(v, `storage_write(${args[0]}, ${args[1]})`)
+					data = data.replace(m, `storage_write(${args[0]}, ${args[1]})`)
 				}
 				break;
+				// promise calls
+				case 'promise_batch_create': {
+					const tmp = randVar()
+					data = data.insertLineBefore(m, `
+		let ${tmp} = ${args[0]};`)
+					data = data.insertLineBefore(m, `
+		unsafe {`);
+					data = data.insertLineAfter(m, `
+		}`);
+					data = data.replace(v, `near_sys::promise_batch_create(${tmp}.len() as u64, ${tmp}.as_ptr() as u64)`)
+				}
+				break;
+				case 'promise': {
+
+					data = data.insertLineBefore(m, `
+		unsafe {`)
+					const vars = []
+
+					Object.entries(args).forEach(([k, v]) => {
+						const tmp = randVar()
+						vars.push(tmp)
+						let insert = `
+			let ${tmp} = `
+						switch (k) {
+							case 'args': insert += `"${JSON.stringify(v).replaceAll(`"`, `\\"`)}"`; break;
+							case 'amount': insert += `${v} as u128`; break;
+							case 'gas': insert += `${v} as u64`; break;
+							default: insert += `"${v}"`
+						}
+						insert += ';'
+						data = data.insertLineBefore(m, insert)
+					})
+
+					let insert = `
+			near_sys::promise_create(`
+						for (let i = 0; i < 3; i++) {
+							insert += `
+				${vars[i]}.len() as u64,
+				${vars[i]}.as_ptr() as u64,`
+						}
+						insert += `
+				${vars[3]}.to_le_bytes().as_ptr() as u64,
+				${vars[4]},
+			)
+		}`
+					data = data.replace(m, insert)
+
+					
+				}
 			}
 
 		})

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import ts from "typescript";
 
 import './utils.js';
 import { ARGS_BASE } from './args.js';
@@ -6,6 +7,8 @@ import { SYS_BASE } from './sys.js';
 import { LIB_BASE } from './lib.js';
 import { TYPES_BASE } from './types.js';
 import {
+	parseInto,
+	parseComments,
 	parseReturnParams,
 	parseVariables,
 	parseLogic,
@@ -20,15 +23,25 @@ import {
 const init = async () => {
 
 	try {
-		let data = fs.readFileSync('./src/index.ts', 'utf8');
+		const data = fs.readFileSync('./src/index.ts', 'utf8');
+		const ast = ts.createSourceFile('', data, ts.ScriptTarget.Latest)
 
-		data = data.split('\n')
-		.filter((l) => !/\/\//gi.test(l))
-		.join('\n')
+		let ret = ``
+		const contract = ast.statements.find(s => s.ClassDeclaration)
+		const methods = contract.members.filter(m => typeof m === m.Meth)
 
+		return
+		
+		// optional parse comments (they get parsed into Rust and might be mangled)
+		data = parseComments(data)
+
+		// extract contract body only
 		data = data.substring(data.indexOf('implements NearContract'), data.lastIndexOf('}'))
 		data = data.substring(data.indexOf('{') + 1)
 
+		return ast
+		// main helpers to translate TS -> RS
+		data = parseInto(data)
 		data = parseReturnParams(data)
 		data = parseLogic(data)
 		data = parseLoops(data)
@@ -40,8 +53,7 @@ const init = async () => {
 		data = parsePublicMethods(data)
 		// console.log(data)
 
-		/// write files
-
+		// write files
 		const argsData = ARGS_BASE
 		const sysData = SYS_BASE
 
