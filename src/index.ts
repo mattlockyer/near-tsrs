@@ -29,43 +29,30 @@ export class Contract implements NearContract {
 			gas: 100000000000000 as u64,
 		});
 
-		// const id = env.promise_batch_create("testnet");
-		// env.promise_batch_action_function_call(
-		// 	id,
-		// 	"create_account",
-		// 	{
-		// 		new_account_id: "something",
-		// 		new_account_pk: "something",
-		// 	},
-		// 	100000000000000000 as u128,
-		// 	gas
-		// )
 
-
-		/*
+		
 		this.print(owner_id);
-		this.printNumber(env.storage_usage());
+		this.printNumber(env.storage_usage().into_u128());
 		this.print(env.predecessor_account_id());
 		this.print(env.current_account_id());
 		this.print(env.signer_account_id());
 		this.printArray(env.signer_account_pk());
-		this.printNumber(env.block_index());
-		this.printNumber(env.block_timestamp());
-		this.printNumber(env.used_gas());
-		this.printNumber(env.prepaid_gas());
-		this.printNumber(env.storage_usage());
-		*/
+		this.printNumber(env.block_index().into_u128());
+		this.printNumber(env.block_timestamp().into_u128());
+		this.printNumber(env.used_gas().into_u128());
+		this.printNumber(env.prepaid_gas().into_u128());
+		this.printNumber(env.storage_usage().into_u128());
 
-		// const randomSeed = env.random_seed();
-		// for (let i = 0; i < randomSeed.length; i+=4) {
-		// 	// use .into() because randomSeed<u8> and printNumber takes u128
-		// 	this.printNumber(randomSeed[i].into());
-		// }
+		const randomSeed = env.random_seed();
+		for (let i = 0; i < randomSeed.length; i+=4) {
+			// use .into() because randomSeed<u8> and printNumber takes u128
+			this.printNumber(randomSeed[i].into_u128());
+		}
 
-		// const randomSeed3 = env.random_seed();
-		// for (let index in randomSeed3) {
-		// 	this.printNumber(randomSeed3[index].into());
-		// }
+		const randomSeed3 = env.random_seed();
+		for (let index in randomSeed3) {
+			this.printNumber(randomSeed3[index].into_u128());
+		}
 
 	}
 

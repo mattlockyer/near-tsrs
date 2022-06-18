@@ -1,8 +1,40 @@
 
-// import dJSON from 'dirty-json';
-const CONSOLE_LOG = 'console.log'
 // import { READ_ARGS, toJsonKey, toArgFunc } from './args.js';
 export const stripQuotes = (v) => v.replace(/`|"|'/gi, ``)
+const randVar = () => `tmp_${Math.floor(Math.random()*1000000000000 + Date.now())}`
+
+/// TODO bring back dJSON
+
+export const tryJSON = (str) => {
+	try {
+		return JSON.parse(str)
+	} catch(e) {
+		return str
+	}
+}
+
+const removeMap = ['import', 'classDef']
+export const removeSyntax = (code, sf) => {
+	removeMap.forEach((arr) => {
+		global.nodes[arr].forEach((node) => {
+			let text = node.getText(sf)
+			text = text.split('\n')[0]
+			code = code.replace(text, ``)
+		})
+	})
+	return code
+}
+
+export const straightReplace = (code, sf) => {
+	code = code
+	.replace(/let/gi, `let mut`)
+	.replace(/const/gi, `let`)
+	.replace(/this\./gi, ``)
+
+	code = code.substring(0, code.lastIndexOf(`}`))
+
+	return code
+}
 
 export const transformConsoleCall = (code, sf) => {
 
@@ -32,62 +64,147 @@ export const transformConsoleCall = (code, sf) => {
 
 }
 
+export const transformLoops = (code, sf) => {
+	global.nodes.forLoop.forEach((node) => {
+		let text = node.getText(sf)
+		text = text.split(`\n`)[0]
+
+		let newLoop = ''
+		const bits = text.split(';')
+		const name = bits[0].split('let')[1].split('=')[0].trim()
+		const start = bits[0].split('=')[1].trim()
+		const end = bits[1].split('<')[1].trim()
+		const step = /\+\+/.test(bits[2]) ? 1 : bits[2].split('=')[1].split(')')[0].trim()
+		newLoop = `for ${name} in (${start}..${end}).step_by(${step}) {`.replace(/length/gi, 'len()');
+
+		code = code.replace(text, newLoop)
+	})
+
+	global.nodes.forOfLoop.forEach((node) => {
+		let text = node.getText(sf)
+		text = text.split(`\n`)[0]
+
+		let newLoop = ''
+		const bits = text.split(' of ')
+		const name = bits[0].split('(')[1].trim().split(' ')[1]
+		const arr = bits[1].split(')')[0].trim()
+		newLoop = `for ${name} in ${arr} {`;
+
+		code = code.replace(text, newLoop)
+	})
+
+	global.nodes.forInLoop.forEach((node) => {
+		let text = node.getText(sf)
+		text = text.split(`\n`)[0]
+
+		let newLoop = ''
+		const bits = text.split(' in ')
+		const name = bits[0].split('(')[1].trim().split(' ')[1]
+		const arr = bits[1].split(')')[0].trim()
+		newLoop = `for (${name}, _x) in ${arr}.iter().enumerate() {`;
+
+		code = code.replace(text, newLoop)
+	})
+
+	return code
+}
+
 
 export const transformEnvCall = (code, sf) => {
-	
+
 	global.nodes.envCall.forEach((node) => {
-
 		const text = node.getText(sf)
+		const name = node.expression?.name?.getText(sf)
+		const args = node.arguments?.map((n) => tryJSON(n.getText(sf).toString()))
 
-		console.log(text)
+		// we don't want to convert this. method calls
+		if (/this./gi.test(text)) return
+
+		let newText = `env::${name}(`
+
+		switch (name) {
+			// storage
+			case 'storage_read': {
+				const tmp = randVar()
+				code = code.insertLineBefore(text, `let ${tmp} = &storage_read(${args[0]});`)
+				newText = `stringify(${tmp})`
+			}
+			break;
+			case 'storage_write': {
+				newText = `storage_write(${args[0]}, ${args[1]})`
+			}
+			break;
+			// reading string env vars from registers
+			case 'predecessor_account_id':
+			case 'current_account_id':
+			case 'signer_account_id': {
+				newText = `stringify(&env_read_register("${name}"))`
+			}
+			break;
+			// reading vec env vars from registers
+			case 'signer_account_pk':
+			case 'random_seed': {
+				newText = `env_read_register("${name}")`
+			}
+			break;
+			// reading u64 env vars
+			case 'block_index': 
+			case 'block_timestamp': 
+			case 'used_gas': 
+			case 'prepaid_gas': 
+			case 'storage_usage': {
+				newText = `env_read("${name}").into()`
+			}
+			break;
+
+			case 'promise': {
+				newText = ''
+
+				code = code.insertLineBefore(text, `
+				unsafe {
+					near_sys::promise_create(
+						
+					)
+				}`)
 
 
-	// 	const call = text.split('.')[1].split('(')[0]
-	// 	let args = text.split('(')[1].split(')')[0].trim()
-	// 	if (args.indexOf('{') === 0) {
-	// 		args = args.replace(/\s+as\s+u\d+/gi, '')
-	// 		args = dJSON.parse(args)
-	// 	} else {
-	// 		args = args.split(',')
-	// 	}
+				// data = data.insertLineBefore(m, `
+				// unsafe {`)
+				// 			const vars = []
+			
+				// 			Object.entries(args).forEach(([k, v]) => {
+				// 				const tmp = randVar()
+				// 				vars.push(tmp)
+				// 				let insert = `
+				// 	let ${tmp} = `
+				// 				switch (k) {
+				// 					case 'args': insert += `"${JSON.stringify(v).replaceAll(`"`, `\\"`)}"`; break;
+				// 					case 'amount': insert += `${v} as u128`; break;
+				// 					case 'gas': insert += `${v} as u64`; break;
+				// 					default: insert += `"${v}"`
+				// 				}
+				// 				insert += ';'
+				// 				data = data.insertLineBefore(m, insert)
+				// 			})
+			
+				// 			let insert = `
+				// 	near_sys::promise_create(`
+				// 				for (let i = 0; i < 3; i++) {
+				// 					insert += `
+				// 		${vars[i]}.len() as u64,
+				// 		${vars[i]}.as_ptr() as u64,`
+				// 				}
+				// 				insert += `
+				// 		${vars[3]}.to_le_bytes().as_ptr() as u64,
+				// 		${vars[4]},
+				// 	)
+				// }`
+				// 			data = data.replace(m, insert)
+			
+							
+			}
+			break;
 
-	// 	switch (call) {
-	// 		// panic
-	// 		case 'panic': {
-	// 			data = data.replace(m, 'panic()')
-	// 		}
-	// 		break;
-	// 		// env_read_register
-	// 		case 'predecessor_account_id':
-	// 		case 'current_account_id':
-	// 		case 'signer_account_id': {
-	// 			data = data.replace(m, `stringify(&env_read_register("${call}"))`)
-	// 		}
-	// 		break;
-	// 		case 'signer_account_pk':
-	// 		case 'random_seed': {
-	// 			data = data.replace(m, `env_read_register("${call}")`)
-	// 		}
-	// 		break;
-	// 		// env_read (u64)
-	// 		case 'block_index': 
-	// 		case 'block_timestamp': 
-	// 		case 'used_gas': 
-	// 		case 'prepaid_gas': 
-	// 		case 'storage_usage': {
-	// 			data = data.replace(m, `env_read("${call}").into()`)
-	// 		}
-	// 		break;
-	// 		// more complex sys calls
-	// 		case 'storage_read': {
-	// 			const tmp = randVar()
-	// 			data = data.insertLineBefore(m, `let ${tmp} = &storage_read(${args[0]});`)
-	// 			data = data.replace(m, `stringify(${tmp})`)
-	// 		}
-	// 		break;
-	// 		case 'storage_write': {
-	// 			data = data.replace(m, `storage_write(${args[0]}, ${args[1]})`)
-	// 		}
 	// 		break;
 	// 		// promise calls
 	// 		case 'promise_batch_create': {
@@ -101,51 +218,17 @@ export const transformEnvCall = (code, sf) => {
 	// 			data = data.replace(v, `near_sys::promise_batch_create(${tmp}.len() as u64, ${tmp}.as_ptr() as u64)`)
 	// 		}
 	// 		break;
-	// 		case 'promise': {
 
-	// 			data = data.insertLineBefore(m, `
-	// unsafe {`)
-	// 			const vars = []
+			default:
+				newText += `)`
+		}
 
-	// 			Object.entries(args).forEach(([k, v]) => {
-	// 				const tmp = randVar()
-	// 				vars.push(tmp)
-	// 				let insert = `
-	// 	let ${tmp} = `
-	// 				switch (k) {
-	// 					case 'args': insert += `"${JSON.stringify(v).replaceAll(`"`, `\\"`)}"`; break;
-	// 					case 'amount': insert += `${v} as u128`; break;
-	// 					case 'gas': insert += `${v} as u64`; break;
-	// 					default: insert += `"${v}"`
-	// 				}
-	// 				insert += ';'
-	// 				data = data.insertLineBefore(m, insert)
-	// 			})
-
-	// 			let insert = `
-	// 	near_sys::promise_create(`
-	// 				for (let i = 0; i < 3; i++) {
-	// 					insert += `
-	// 		${vars[i]}.len() as u64,
-	// 		${vars[i]}.as_ptr() as u64,`
-	// 				}
-	// 				insert += `
-	// 		${vars[3]}.to_le_bytes().as_ptr() as u64,
-	// 		${vars[4]},
-	// 	)
-	// }`
-	// 			data = data.replace(m, insert)
-
-				
-	// 		}
-	// 	}
-
-			
-	// })
-
+		if (!newText.length) {
+			code = code.replace(text + ';', text)
+		}
+		code = code.replace(text, newText)
 	})
 	
-
 	return code
 }
 

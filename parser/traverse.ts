@@ -5,6 +5,15 @@ import ts, {
 	TransformerFactory,
 } from 'typescript';
 
+const map = [
+	{ is: ts.isImportDeclaration, arr: 'import' },
+	{ is: ts.isClassDeclaration, arr: 'classDef' },
+	{ is: ts.isMethodDeclaration, arr: 'method' },
+	{ is: ts.isForOfStatement, arr: `forOfLoop`},
+	{ is: ts.isForInStatement, arr: `forInLoop`},
+	{ is: ts.isForStatement, arr: `forLoop`},
+]
+
 export const indexNodes: TransformerFactory<SourceFile> = (ctx) => {
 	
 	const { factory: f } = ctx
@@ -13,14 +22,17 @@ export const indexNodes: TransformerFactory<SourceFile> = (ctx) => {
 	const visit: Visitor = (node: Node) => {
 		// console.log(node.getText(sf))
 
+		map.forEach(({ is, arr }) => {
+			if (is(node)) {
+				nodes[arr].push(node)
+			}
+		})
+
 		if (ts.isCallExpression(node)) {
 			const text = node.getText(sf)
 			if (/console\./gi.test(text)) nodes.consoleCall.push(node);
 			else if (/env\./gi.test(text)) nodes.envCall.push(node);
 			else nodes.call.push(node);	
-		}
-		if (ts.isMethodDeclaration(node)) {
-			nodes.method.push(node)
 		}
 
 		return ts.visitEachChild(node, visit, ctx)

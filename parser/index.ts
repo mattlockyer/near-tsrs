@@ -6,15 +6,29 @@ import {
 	indexNodes
 } from './traverse.js'
 import {
+	removeSyntax,
 	transformConsoleCall,
 	transformEnvCall,
 	transformMethod,
+	transformLoops,
+	straightReplace,
 } from './helpers.js'
+
+import { ARGS_BASE } from './libs/args.js';
+import { SYS_BASE } from './libs/sys.js';
+import { LIB_BASE } from './libs/lib.js';
+import { TYPES_BASE } from './libs/types.js';
+
 import './utils.js'
 
 let nodes
 const emptyNodes = {
+	import: [],
+	classDef: [],
 	envCall: [],
+	forLoop: [],
+	forInLoop: [],
+	forOfLoop: [],
 	consoleCall: [],
 	call: [],
 	method: [],
@@ -44,8 +58,23 @@ const init = async () => {
 		code = transform(code, transformConsoleCall)
 		code = transform(code, transformEnvCall)
 		code = transform(code, transformMethod)
-		
-		console.log(code)
+		code = transform(code, transformLoops)
+		code = transform(code, straightReplace)
+		code = transform(code, removeSyntax)
+
+		// write files
+		const argsData = ARGS_BASE
+		const sysData = SYS_BASE
+
+		const libData = `
+		${LIB_BASE}
+		${TYPES_BASE}
+		${code}
+		`;
+
+		fs.writeFileSync('./contract/src/args.rs', argsData);
+		fs.writeFileSync('./contract/src/sys.rs', sysData);
+		fs.writeFileSync('./contract/src/lib.rs', libData);
 		
 		// // Create a Printer
 		// const printer = ts.createPrinter({
