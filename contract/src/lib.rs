@@ -28,6 +28,7 @@ const TEMP_REGISTER: u64 = 0;
 extern crate alloc;
 use near_sys;
 use alloc::format;
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -44,84 +45,130 @@ pub type AccountId<'a> = &'a str;
 
 
 
-	pub fn init(owner_id: AccountId, a: u128, b: u128) {
+#[no_mangle]
+
+	pub fn init()  {
+			
+        unsafe { near_sys::input(TEMP_REGISTER) };
+        let data = register_read(TEMP_REGISTER);
+        let args = expect(alloc::str::from_utf8(&data).ok());
+
+			let b = get_arg!(get_uint, args, "\"b\":");
+			let a = get_arg!(get_uint, args, "\"a\":");
+			let owner_id = get_arg!(get_string, args, "\"owner_id\":");
 
 		let temp = owner_id;
 		print(temp);
-		storage_write(owner_id, temp);
+		storage_write("owner_id", temp);
 
 		printNumber(a + b as u128);
 
-		let randomSeed2 = env_read_register("random_seed");
-		for unit in randomSeed2 {
-			printNumber(unit.into_u128());
-		}
+		// let randomSeed2 = env.random_seed();
+		// for (let unit of randomSeed2) {
+		// 	printNumber(unit.into());
+		// }
 		
-		let pk = env_read_register("signer_account_pk");
+
+				let mut tmp_1888427484079 = env_read_register("signer_account_pk");
+				tmp_1888427484079.remove(0);
+				let mut tmp_2534813217114 = String::from("11111111111111111111111111111111111111111111");
+				bs58::encode(&tmp_1888427484079).into(tmp_2534813217114.as_mut_str());
+				
+
+		let pk = tmp_2534813217114;
+
+		log(&format!("{:?}", pk));
 
 
 				unsafe {
+					
+
+let tmp_1660025143946 = "testnet";
+
+let tmp_1842354673873 = "create_account";
+
+let tmp_2633018514522 = format!("{{\"new_account_id\":\"abc-92845698376453.testnet\",\"new_public_key\":{:?},\"temp\":10000}}", pk);
+
+let tmp_2049098496083 = 1000000000000000000000000 as u128;
+
+let tmp_2521703196423 = 100000000000000 as u64;
+
+
 					near_sys::promise_create(
-						
-					)
+						tmp_1660025143946.len() as u64,
+						tmp_1660025143946.as_ptr() as u64,
+						tmp_1842354673873.len() as u64,
+						tmp_1842354673873.as_ptr() as u64,
+						tmp_2633018514522.len() as u64,
+						tmp_2633018514522.as_ptr() as u64,
+						tmp_2049098496083.to_le_bytes().as_ptr() as u64,
+						tmp_2521703196423,
+					);
 				}
 
 		
 
 
 		
-		print(owner_id);
-		printNumber(env::into_u128());
-		print(stringify(&env_read_register("predecessor_account_id")));
-		print(stringify(&env_read_register("current_account_id")));
-		print(stringify(&env_read_register("signer_account_id")));
-		printArray(env_read_register("signer_account_pk"));
-		printNumber(env::into_u128());
-		printNumber(env::into_u128());
-		printNumber(env::into_u128());
-		printNumber(env::into_u128());
-		printNumber(env_read("storage_usage").into().into_u128());
+		// print(owner_id);
+		// printNumber(env.storage_usage().into());
+		// print(env.predecessor_account_id());
+		// print(env.current_account_id());
+		// print(env.signer_account_id());
+		// printArray(env.signer_account_pk());
+		// printNumber(env.block_index().into());
+		// printNumber(env.block_timestamp().into());
+		// printNumber(env.used_gas().into());
+		// printNumber(env.prepaid_gas().into());
 
-		let randomSeed = env_read_register("random_seed");
-		for i in (0..randomSeed.len()).step_by(4) {
-			// use .into() because randomSeed<u8> and printNumber takes u128
-			printNumber(randomSeed[i].into_u128());
+		// let randomSeed = env.random_seed();
+		// for (let mut i = 0; i < randomSeed.length; i+=4) {
+		// 	// use .into() because randomSeed<u8> and printNumber takes u128
+		// 	printNumber(randomSeed[i].into());
+		// }
+
+		// let randomSeed3 = env.random_seed();
+		// for (let mut index in randomSeed3) {
+		// 	printNumber(randomSeed3[index].into());
+		// }
+
+	
+
+
+
 		}
 
-		let randomSeed3 = env_read_register("random_seed");
-		for (index, _x) in randomSeed3.iter().enumerate() {
-			printNumber(randomSeed3[index].into_u128());
-		}
+	// public checkOwner() {
+	// 	if (env.predecessor_account_id() != env.storage_read("owner_id")) {
+	// 		env.panic();
+	// 	}
+	// }
 
-	}
+#[no_mangle]
 
-	pub fn checkOwner() {
-let mut tmp_2478418482491 = &storage_read(owner_id);
-
-		if (stringify(&env_read_register("predecessor_account_id")) != stringify(tmp_2478418482491)) {
-			env::panic();
-		}
-	}
-
-	pub fn viewOwner(): AccountId {
-let mut tmp_2642473192552 = &storage_read(owner_id);
-
-		let owner = stringify(tmp_2642473192552);
-		log(&format!("{:?}", owner));
-		return owner;
-	}
-
-	fn print(owner_id: AccountId) {
+	fn print(owner_id: AccountId)  {
+			
 		log(&format!("String {:?}",  owner_id));
-	}
+	
+		}
 
-	fn printArray(v: Array<u8>) {
-		log(&format!("String {:?}",  v));
-	}
+#[no_mangle]
 
-	fn printNumber(v: u128) {
+	fn printNumber(v: u128)  {
+			
 		log(&format!("Number {:?}",  v));
-	}
+	
+		}
+
+	// printArray(v: Array<u8>) {
+	// 	console.log("String", v);
+	// }
+
+	// public viewOwner(): AccountId {
+	// 	let owner = env.storage_read("owner_id");
+	// 	console.log(owner);
+	// 	return owner;
+	// }
 
 
 		

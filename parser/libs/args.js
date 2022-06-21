@@ -43,7 +43,7 @@ macro_rules! get_arg {
 }
 `
 
-export const READ_ARGS = `() {
+export const READ_ARGS = `
         unsafe { near_sys::input(TEMP_REGISTER) };
         let data = register_read(TEMP_REGISTER);
         let args = expect(alloc::str::from_utf8(&data).ok());

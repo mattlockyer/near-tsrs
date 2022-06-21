@@ -55,11 +55,11 @@ const init = async () => {
 
 		// code = parseConsole(code)
 
-		code = transform(code, transformConsoleCall)
+		code = transform(code, straightReplace)
 		code = transform(code, transformEnvCall)
+		code = transform(code, transformConsoleCall)
 		code = transform(code, transformMethod)
 		code = transform(code, transformLoops)
-		code = transform(code, straightReplace)
 		code = transform(code, removeSyntax)
 
 		// write files

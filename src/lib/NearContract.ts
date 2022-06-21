@@ -15,6 +15,7 @@ export const env = {
 	current_account_id: (): string => '',
 	signer_account_id: (): string => '',
 	signer_account_pk: (): Array<u8> => [],
+	signer_account_pk_string: (): string => '',
 	random_seed: (): Array<u8> => [],
 	// env_read (u64)
 	block_index: (): u64 => 0 as u64,

@@ -27,6 +27,7 @@ const TEMP_REGISTER: u64 = 0;
 extern crate alloc;
 use near_sys;
 use alloc::format;
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
